@@ -1,0 +1,21 @@
+# Большие артифакты — только на внешке (см. README.md)
+*.iso
+*.iso.0*
+*.zip
+*.zip.0*
+*.7z
+*.exe
+*.dll
+*.sys
+*.wim
+payload/
+build/
+debs/
+toolroot/
+
+# Секреты — НИКОГДА не коммитим
+.env
+*cookie*
+*.netrc
+credentials*
+*_token*
