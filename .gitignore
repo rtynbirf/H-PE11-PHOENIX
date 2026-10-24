@@ -1,8 +1,6 @@
 # Большие артифакты — только на внешке (см. README.md)
 *.iso
 *.iso.0*
-*.zip
-*.zip.0*
 *.7z
 *.exe
 *.dll
@@ -12,6 +10,10 @@ payload/
 build/
 debs/
 toolroot/
+# ZIP поставки разрешаем ТОЛЬКО в artifacts/ (мелкие пакеты, < 100 КБ)
+*.zip
+*.zip.0*
+!artifacts/**
 
 # Секреты — НИКОГДА не коммитим
 .env
@@ -19,3 +21,4 @@ toolroot/
 *.netrc
 credentials*
 *_token*
+.gh_token
