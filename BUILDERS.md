@@ -47,3 +47,212 @@
 - Десктоп-сборки к проекту НЕ относятся — каталог дан для памяти/справки.
 
 Проверка ссылок и статусов: веб-разведка 2026-10-25 (sergegstrelec.name, forum.ovgorskiy.ru, kottosofttrack.ucoz.net, github.com/ChrisRfr/Win10XPE, github.com/PhoenixPE/PhoenixPE, windowsmatters.com, easy2boot.xyz, winpe.ru).
+
+## IV. Сайт kottosoft.ucoz.com — полный разбор (2026-10-25, по приказу Хозяина)
+
+**Возраст сайта**: НЕ ПОЗДНЕЕ НОЯБРЯ 2014 (первый снапшот Wayback 27.11.2014) → на 25.10.2026 сайту **~12 лет** (минимум 11 лет 11 месяцев).
+Лента сборок: **3024 записи** с февраля 2015 по 25.10.2021 (последняя — «Windows 11 Enterprise by Brux»); после октября 2021 сайт жив-висит, но не пополняется.
+Метод: проглядены все 302 страницы ленты + 1198 страниц записей без автора в заголовке (автор из текста описания; пометка «~» = атрибуция по описанию, не по заголовку).
+Партнёры в сайдбаре: kubines.ucoz.net (Кубинец), spa.ucoz.club, spa-phoenix.ucoz.org (SPA-Phoenix), diza-74.ucoz.ru (DiZona), torrnada.ru, oszone.net.
+
+**Полный список сборщиков, встречающихся на сайте (197 имён, по числу сборок):**
+
+| # | Сборщик | Сборок | Пометка |
+|---|---------|--------|---------|
+| 1 | KottoSOFT | 591 |  |
+| 2 | UralSOFT | 233 |  |
+| 3 | Generation2 | 170 |  |
+| 4 | AG | 105 |  |
+| 5 | Zosma | 92 |  |
+| 6 | Adguard | 90 |  |
+| 7 | IZUAL | 70 |  |
+| 8 | OVGorskiy | 63 |  |
+| 9 | g0dl1ke | 55 |  |
+| 10 | Lopatkin | 55 |  |
+| 11 | Flibustier | 48 |  |
+| 12 | Zab | 47 |  |
+| 13 | G.M.A. | 45 |  |
+| 14 | CUTA | 40 |  |
+| 15 | YahooXXX | 40 |  |
+| 16 | SanLex | 38 |  |
+| 17 | Brux | 37 |  |
+| 18 | Integral | 36 |  |
+| 19 | Kuloymin | 36 |  |
+| 20 | SmokieBlahBlah | 36 |  |
+| 21 | StartSoft | 34 |  |
+| 22 | Elgujakviso | 27 |  |
+| 23 | BananaBrain | 25 |  |
+| 24 | Bellisha | 25 |  |
+| 25 | Andreyonohov | 24 |  |
+| 26 | OneSmiLe | 24 |  |
+| 27 | GX | 23 |  |
+| 28 | Naifle | 23 |  |
+| 29 | Eagle123 | 22 |  |
+| 30 | Vladios | 22 |  |
+| 31 | Vlazok | 22 |  |
+| 32 | KDFX | 21 |  |
+| 33 | LeX_6000 | 21 |  |
+| 34 | Matros | 21 |  |
+| 35 | Semit | 18 |  |
+| 36 | TeamOS | 18 |  |
+| 37 | m0nkrus | 17 |  |
+| 38 | Putnik | 17 |  |
+| 39 | Aspro | 16 |  |
+| 40 | LIM | 16 |  |
+| 41 | MoverSoft | 16 |  |
+| 42 | Ratiborus | 16 |  |
+| 43 | c400 | 13 |  |
+| 44 | Ivandubskoj | 13 |  |
+| 45 | Novik | 12 |  |
+| 46 | aXeSwY & TomeCar | 11 |  |
+| 47 | MandarinStar | 11 |  |
+| 48 | Proteus | 11 |  |
+| 49 | Sergei Strelec | 11 |  |
+| 50 | spb_user | 11 |  |
+| 51 | DREY | 10 |  |
+| 52 | molchel | 10 |  |
+| 53 | Nicky | 10 |  |
+| 54 | SLO94 | 10 |  |
+| 55 | murphy78 | 9 |  |
+| 56 | Donbass | 8 |  |
+| 57 | Neomagic | 8 |  |
+| 58 | Sharicov | 8 |  |
+| 59 | Storm Breaker & TECH Aura | 8 |  |
+| 60 | Tatata | 8 |  |
+| 61 | Yahoo002 | 8 |  |
+| 62 | ArtZak | 7 |  |
+| 63 | Den | 7 |  |
+| 64 | Dragon | 7 |  |
+| 65 | KulHunter | 7 |  |
+| 66 | Morhior | 7 |  |
+| 67 | Rockmetall | 7 |  |
+| 68 | Sebaxakerhtc | 7 |  |
+| 69 | Batman | 6 |  |
+| 70 | Belish | 6 |  |
+| 71 | Bella | 6 |  |
+| 72 | Bryansk | 6 |  |
+| 73 | Mirkec | 6 |  |
+| 74 | Sunehildeep | 6 |  |
+| 75 | Vladios & Liveonloan | 6 |  |
+| 76 | Vladislays | 6 |  |
+| 77 | YelloSOFT | 6 |  |
+| 78 | Alex.zed | 5 |  |
+| 79 | IDimm | 5 |  |
+| 80 | LaMonstre | 5 |  |
+| 81 | Leha342 | 5 |  |
+| 82 | ROG | 5 |  |
+| 83 | Satenex | 5 |  |
+| 84 | WinRoNe | 5 |  |
+| 85 | Xalex | 5 |  |
+| 86 | YahooIII | 5 |  |
+| 87 | Anti-Spy | 4 |  |
+| 88 | D1mka | 4 |  |
+| 89 | Egeri | 4 |  |
+| 90 | eXtreme | 4 |  |
+| 91 | Game | 4 |  |
+| 92 | NIKZZZZ CD | 4 |  |
+| 93 | OmegaSOFT | 4 |  |
+| 94 | Paxweaver | 4 |  |
+| 95 | Stattica | 4 |  |
+| 96 | White Death | 4 |  |
+| 97 | WolfEywa | 4 |  |
+| 98 | 1Pawel | 3 |  |
+| 99 | A.L.E.X. | 3 |  |
+| 100 | Dr.Verstak | 3 |  |
+| 101 | Fedya | 3 |  |
+| 102 | Jerry_Xristos | 3 |  |
+| 103 | KievIGreen | 3 |  |
+| 104 | KosaySOFT | 3 |  |
+| 105 | Kristian | 3 |  |
+| 106 | KrotySOFT | 3 |  |
+| 107 | Maherz | 3 |  |
+| 108 | Nicky & Rain | 3 |  |
+| 109 | Oleg-zelen | 3 |  |
+| 110 | RZN-Soft | 3 |  |
+| 111 | Sibiryak | 3 |  |
+| 112 | Sura Soft | 3 |  |
+| 113 | Team-LiL | 3 |  |
+| 114 | BIZ | 2 |  |
+| 115 | Brux & White Smoke | 2 |  |
+| 116 | Darkalexx4 | 2 |  |
+| 117 | Djakonda | 2 |  |
+| 118 | Encoder | 2 |  |
+| 119 | evgen_b | 2 |  |
+| 120 | Golver | 2 |  |
+| 121 | KaZiMiR | 2 |  |
+| 122 | Kiryandr | 2 |  |
+| 123 | LWGam | 2 |  |
+| 124 | OrbitDV | 2 |  |
+| 125 | Qmax | 2 |  |
+| 126 | Rousk | 2 |  |
+| 127 | RUwinSOFT | 2 |  |
+| 128 | Sam | 2 |  |
+| 129 | SapSan | 2 |  |
+| 130 | Shaman | 2 |  |
+| 131 | Subzero | 2 |  |
+| 132 | Vannza | 2 |  |
+| 133 | VLSC | 2 |  |
+| 134 | W.Z.T. | 2 |  |
+| 135 | Xomaze | 2 |  |
+| 136 | AEK | 1 |  |
+| 137 | AlexSmile | 1 |  |
+| 138 | Avatar1962 | 1 |  |
+| 139 | BADDGET | 1 |  |
+| 140 | Belgian | 1 |  |
+| 141 | Blackbox | 1 |  |
+| 142 | Camodelkin | 1 |  |
+| 143 | CMTeamPK | 1 |  |
+| 144 | Dart10 | 1 |  |
+| 145 | DaVincci | 1 |  |
+| 146 | Degortg | 1 |  |
+| 147 | DiLshad Sys | 1 |  |
+| 148 | DrozD | 1 |  |
+| 149 | Ducazen | 1 |  |
+| 150 | Dyatlov | 1 |  |
+| 151 | EmiN | 1 |  |
+| 152 | Grimm_13 | 1 |  |
+| 153 | IceSlam | 1 |  |
+| 154 | IgnatievI | 1 |  |
+| 155 | kachnu | 1 |  |
+| 156 | Karasidi | 1 |  |
+| 157 | KATAR0 | 1 |  |
+| 158 | Kazanov | 1 |  |
+| 159 | Khatmau_sr | 1 |  |
+| 160 | KHMILNYK | 1 |  |
+| 161 | Kosala | 1 |  |
+| 162 | Ks-Soft | 1 |  |
+| 163 | Lamer | 1 |  |
+| 164 | LamroSOFT | 1 |  |
+| 165 | Lazarus | 1 |  |
+| 166 | Lucky | 1 |  |
+| 167 | Magnum | 1 |  |
+| 168 | Mallymkun | 1 |  |
+| 169 | Minutka15 | 1 |  |
+| 170 | MoDValue | 1 |  |
+| 171 | Muhammad Sadeem | 1 |  |
+| 172 | MyDream | 1 |  |
+| 173 | Natali & KHMILNYK | 1 |  |
+| 174 | Nethum | 1 |  |
+| 175 | niknikto | 1 |  |
+| 176 | OniS | 1 |  |
+| 177 | PIP | 1 |  |
+| 178 | ProDarks | 1 |  |
+| 179 | Rafaela | 1 |  |
+| 180 | Ratmir | 1 |  |
+| 181 | RazchlenenkA | 1 |  |
+| 182 | RemasterOS | 1 |  |
+| 183 | REZAK | 1 |  |
+| 184 | SemionovSOFT | 1 |  |
+| 185 | SPAXPBLACK | 1 |  |
+| 186 | StaforceTEAM | 1 |  |
+| 187 | Syed Talha Zameer | 1 |  |
+| 188 | SYSadminSFT | 1 |  |
+| 189 | Trek | 1 |  |
+| 190 | TSM | 1 |  |
+| 191 | TSPR | 1 |  |
+| 192 | UnOfficial | 1 |  |
+| 193 | Usonarl | 1 |  |
+| 194 | VirUSA | 1 |  |
+| 195 | WinRoNe & Leha342 | 1 |  |
+| 196 | Xotta6bi4 | 1 |  |
+| 197 | Xserver17 | 1 |  |
