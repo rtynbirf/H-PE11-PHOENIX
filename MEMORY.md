@@ -239,9 +239,9 @@ filebin bin:      https://filebin.net/XXXXXXXXXx7z (жив до 2026-10-25/27)
   `git add -A && git commit && git push`.
 - Если песочницу утёрло: `git clone https://rtynbirf:TOKEN@github.com/rtynbirf/H-PE11-PHOENIX.git`
   — вся память возвращается.
-- Структура: `MEMORY.md` (этот файл — мозг) / `worklog.md` (дневник) / `artifacts/`
-  (снапшот download: скрипты-батники, отчёты, FIX13) / `brand/`, `docs/`, `scripts/`,
-  `manifests/` (наследие v1.3).
+- Структура: `MEMORY.md` (этот файл — мозг) / `HEROES.md` (доска почёта ников) /
+  `worklog.md` (дневник) / `artifacts/` (снапшот download: скрипты-батники, отчёты,
+  FIX13) / `brand/`, `docs/`, `scripts/`, `manifests/` (наследие v1.3).
 - Хозяину по миновании надобности: отозвать токен (github.com/settings/tokens) и
   удалить deploy-key сироту «PHOENIX-11 build push key (auto, revocable)»
   (репа → Settings → Deploy keys).

@@ -532,3 +532,18 @@ Stage Summary:
 - Репа: https://github.com/rtynbirf/H-PE11-PHOENIX (private, main, 47e86c7); сага GitHub (Task 3 → 5 → 29) закрыта пушем
 - Хозяину: удалить deploy-key сироту «PHOENIX-11 build push key (auto, revocable)» (репа → Settings → Deploy keys); по миновании надобности отозвать PAT (github.com/settings/tokens)
 - Проект ЖДЁТ: прогон FIX13 v2 → SVODKA 5/5 → ребут N1 (меню видно?) → ребут N2 (PE стартует?) → финиш (переименование, зачистка, кит N1)
+
+---
+Task ID: 30
+Agent: main (Z.ai)
+Task: Приказ Хозяина: «ЧТО ТО ТЫ ПОТЕРЯЛ ОПЫТ БЕЗЫМЯННЫХ (ТОЛЬКО НИКИ) ГЕРОЕВ КОТОРЫЕ ПЫХТЯ (ТРАТЯ ВРЕМЯ И ЖИЗНЬ ЗАКЛАДЫВАЛИ ФУНДАМЕНТ) — МЫ ИХ ТАМ СПИСОК ПИСАЛИ, ОСВЕЖИ ЕГО». МАШИНА: ТОХТА=СТОП (никаких изменений на станции)
+
+Work Log:
+- Разведка: единого списка героев НЕ существовало — кредиты разбросаны по поставкам (PHX_WINST_ADDON.txt: триада Ander_73 + СФСТ dimo70 + WinPE 10/11 KTV; BOMB-REPORT: wimlib/pycdlib/XpucT; README v1.3: irzyxa/Volume2; форензика Task 10: longpanda/Ventoy/MOK)
+- Собран HEROES.md — ДОСКА ПОЧЁТА: почётный ряд 24 ники с ролями (Ander_73, Стрелец, dimo70, XpucT, irzyxa, longpanda, Eric Biggers, Chris Lalancette, pbatard, Russinovich/Cogswell, Igor Pavlov, Don Ho, Stenberg, zx2c4, Chuyu Team, JFX, Ballenthin, Jones, Schmitt, Vernooĳ, Pointer/Forcier, Alex Clark, Schneegans, Microsoft), «упомянутые на сцене» с честными [--] (2k10, 78Setup, HMS, SamLab, Login Unlocker, winitpro и др.), служба доставки (filebin/catbox/x0.at), командир 6orman
+- README.md (структура) и MEMORY.md (how-to) дополнены ссылкой на HEROES.md
+- Push в rtynbirf/H-PE11-PHOENIX (main)
+
+Stage Summary:
+- Список героев теперь НЕУБИВАЕМ — лежит в репе рядом с памятью проекта; консолидирован впервые за историю
+- Станция НЕ тронута (ТОХТА=СТОП); FIX13 v2 продолжает ждать прогона
