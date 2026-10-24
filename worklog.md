@@ -508,3 +508,23 @@ Work Log:
 Stage Summary:
 - Миссия «УИЛЬЯМ» переведена на 26H2 (26300.x): BUILD CARD v1 зафиксирована в каноне; следующий шаг песочницы — добыча базиса B1 по команде Хозяина
 - Станция НЕ тронута (ТОХТА=СТОП); FIX13 v2 не блокируется
+---
+Task ID: 39
+Agent: main (Z.ai)
+Task: Приказ Хозяина: «ДЕЛАЙ! ПОМНИ ПРО ТЕХ КТО ДЕЛАЛ ЭТО ДО НАС! ДЕЛАЙ КАК ОНИ, ДЕЛАЙ ЛУЧШЕ ИХ! ПОМНИ ПРО ИХ ПУТЬ И ОШИБКИ - НЕ ПОВТОРЯЙ!» — старт B1 миссии «УИЛЬЯМ»
+
+Work Log:
+- Разведка базиса через listid.php: новейший retail feature update 26H2 amd64 = 26300.9807 (2026-10-16, GUID 687d1ced-aab1-4cd5-ad05-705189769731); также найден LCU 26300.9711 (13.10, KB5127648) и .NET KB5127694 (26300.10008)
+- Вскрыт API uupdump (v0.2.3): fetchupd капризничает; рабочий путь - get.php?id=...&pack=ru-ru&edition=professional&aria2=2 (UNSUPPORTED_COMBINATION лечится именем издания 'professional'/'0'); получен aria2-лист: 99 файлов ru-RU (AggregatedMetadata.cab + DesktopDeployment.cab + FOD) с подписанными WU-ссылками и sha-1 на каждый файл
+- Урок хронометража: WU-ссылки короткоживущие -> в кит встроено ОБНОВЛЕНИЕ листа с сайта при запуске + fallback на вложенный
+- Скрипты конвертации добыты из открытых реп UUP dump (git.uupdump.net): autodl-манифесты, convert.sh-путь; главный пак uup-converter-wimlib-v128m.7z (SHA256 1597f39d... совпал), aria2c.exe (b9cd71b2... совпал), 7zr.exe (72c98287... совпал)
+- Собран WILLIAM_B1_KIT_v1: START_WILLIAM.cmd (ASCII-only, CRLF, parens-balanced - по правилам проекта; 5 шагов: свежий лист -> aria2c с check-integrity -> распаковка конвертера -> мой ConvertConfig -> convert-UUP), WILLIAM_ConvertConfig.ini (AutoStart=1, ResetBase=0, AddUpdates=0 - LCU уже в cab-составе 9807, SkipWinRE=0, UpdtBootFiles=1, виртуальные издания off), autounattend.xml (валиден: bypass TPM/SecureBoot/CPU/RAM/Storage через LabConfig, ru-RU, локальная учётка 6orman, FirstLogonCommands ищет \WILLIAM\tweaks.cmd на носителях), WILLIAM_tweaks.cmd (консервативно: телеметрия/DiagTrack/CEIP; НЕ трогаем Defender/Store/Winget/Edge/servicing), README_WILLIAM_v1.txt (UTF-8 BOM, CRLF: ход работы, Rufus MBR+NTFS, установка, отчётные команды)
+- Ключевое решение: install.wim НЕ модифицируем - вся кастомизация через unattend + твик с флешки (полная serviceability, нулевой риск поломки servicing; уроки: агрессивные вырезки убивали сборки)
+- Упаковка: WILLIAM_B1_KIT_v1.zip = 4 563 832 B, SHA256 10a9e8424d4147507af62e006deb353fd6d06408cebf8fae19d955542110f722, целостность zip OK, копия в download/
+- Доставка: litterbox https://litter.catbox.moe/afk2ti.zip (72ч), roundtrip-проверка скачанного - SHA256 совпал байт-в-байт
+- Push: worklog + в репу
+
+Stage Summary:
+- Этап B1 ГОТОВ К ПРОГОНУ кроликом: кит доставлен и проверен; Хозяин запускает START_WILLIAM.cmd от админа на станции -> получит ISO 26300.9807 ru-RU Pro
+- Параллельный долг кролика: Этап A (BASE_6ORMAN_C.wim + winsat) ДО установки
+- Станция решений не получала, кроме кита (ТОХТА уважен: кит ничего не меняет в системе, только качает и собирает ISO)
