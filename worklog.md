@@ -511,3 +511,24 @@ Work Log:
 Stage Summary:
 - FIX13 v2 доставлен Хозяину; SVODKA 5/5 и перезагрузки N1/N2 НЕ выполнены — проект на финише, ждём прогон
 - Локальные артефакты FIX13 при обновлении песочницы утрачены; 2026-10-25 спасены с filebin байт-в-байт (SHA256 сверён) в рамках Task 29
+
+---
+Task ID: 29
+Agent: main (Z.ai)
+Task: Приказ Хозяина: «НА РЕПЕ ПРИВАТ СОХРАНИ ЧТОБ ТЕБЕ ПОТОМ ПРОЩЕ ЖИЛОСЬ» — внешняя память проекта в приватной GitHub-репе (дан новый fine-grained PAT)
+
+Work Log:
+- Состояние песочницы к моменту приказа: FIX13-скрипты и ZIP в download//scripts/ СТЁРТЫ (рефреш), worklog оборван на Task 18 (дописки 28/28-b утрачены ПОВТОРНО) — приказ пришёл ровно вовремя
+- Спасение FIX13 v2 с filebin.net/phx-menu-20261024 (пока бин жив): 5236 B, SHA256 d17cd450…83c4f87 СОВПАЛ; распакованы 3 файла — SHA256 все три сошлись с эталоном (4551a4e8… / 5c9f7d0a… / 88d4d5b1…)
+- Токен проверен: GET /user → rtynbirf (id 119601232); GET /repos/rtynbirf/H-PE11-PHOENIX → HTTP 200, private, perms admin/maintain/push — БЛОКЕР Task 5 (Contents 404) СНЯТ новым PAT
+- Восстановлены в worklog: Task 28 (FIX13 v1: веб-разведка 3 причин невидимости меню, сборка на найденных практиках, FATAL алиас-мина №2 r=Invoke-History, защитный стоп сохранил систему), Task 28-b (v2: R→Run-Cmd, selftest FAZA 0, SVODKA 5/5, доставка + протокол N1/N2)
+- Написан MEMORY.md (мозг проекта): вехи ЭПОХИ A-J (27 вех нумерованным списком с +/−), уроки-кодекс L1-L16, константы (GUID/пути/хэши/бины), протокол финиша, how-to репы для агента-потомка
+- Обновлены README.md (раздел «Миссия репы: ВНЕШНЯЯ ПАМЯТЬ», структура) и .gitignore (ZIP разрешены только в artifacts/, .gh_token добавлен в секреты)
+- git: 75 файлов, commit 47e86c770f3ffab8cc5ef21171799a64bc9f8ef5 → push origin main через https://rtynbirf:TOKEN@github.com/rtynbirf/H-PE11-PHOENIX.git (токен в .git/config + /home/z/my-project/.gh_token chmod 600, НЕ коммитится)
+- Круговая проверка [x] 3/3: (1) API branches/main SHA = локальный HEAD; (2) top-level содержит MEMORY.md/worklog.md/artifacts/; (3) FIX13 v2 скачан ИЗ РЕПЫ (raw.githubusercontent) — 5236 B, SHA256 d17cd450…83c4f87 байт-в-байт
+
+Stage Summary:
+- ПАМЯТЬ ПРОЕКТА ТЕПЕРЬ НЕУБИВАЕМА: смерть песочницы лечится git clone по токену — worklog 1-18+28/28-b/29, MEMORY.md, артефакты всех эпох (v1.2/v1.3/BCD/DIAG/FIX2-3/FIX13)
+- Репа: https://github.com/rtynbirf/H-PE11-PHOENIX (private, main, 47e86c7); сага GitHub (Task 3 → 5 → 29) закрыта пушем
+- Хозяину: удалить deploy-key сироту «PHOENIX-11 build push key (auto, revocable)» (репа → Settings → Deploy keys); по миновании надобности отозвать PAT (github.com/settings/tokens)
+- Проект ЖДЁТ: прогон FIX13 v2 → SVODKA 5/5 → ребут N1 (меню видно?) → ребут N2 (PE стартует?) → финиш (переименование, зачистка, кит N1)
