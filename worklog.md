@@ -547,3 +547,20 @@ Work Log:
 Stage Summary:
 - Список героев теперь НЕУБИВАЕМ — лежит в репе рядом с памятью проекта; консолидирован впервые за историю
 - Станция НЕ тронута (ТОХТА=СТОП); FIX13 v2 продолжает ждать прогона
+
+---
+Task ID: 31
+Agent: main (Z.ai)
+Task: Уточнение Хозяина после Task 30: «НЕТ СПИСОК СБОРЩИКОВ СБОРОК ГДЕ? СМОУКБЛАХБЛАХ ОТГОВСКИ КОТОСФТ И ТД И ТП» — нужен каталог АВТОРОВ СБОРОК Windows/WinPE (не инструментов). МАШИНА: ТОХТА=СТОП (станцию не трогаем)
+
+Work Log:
+- Опознание имён по памяти Хозяина: СМОУКБЛАХБЛАХ = SmokieBlahBlah, ОТГОВСКИ = OVGorskiy®, КОТОСФТ = KottoSOFT — все три подтверждены веб-разведкой (2026-10-25)
+- Веб-разведка: Strelec жив (WinPE 11-10-8 x64 релиз 2026.10.21); OVGorskiy жив (Win11 Ru 25H2 4in1 Upd 07.2026, активная гостевая на forum.ovgorskiy.ru); KottoSOFT затих ~2018-21 (сайт-архив kottosofttrack.ucoz.net жив, Win7 9in1 v.28, wim-загрузчики от Xemom1); SmokieBlahBlah затих ~2021-22 (Win7 24in1, Win10 32in1+LTSC — рутрекер/archive.org); конструкторы: Win10XPE (ChrisR, GitHub, движок WinBuilder-наследие), PhoenixPE (PEBakery, GitHub, жив Dec 2025); гвардия winpe.ru (yurkesha (Y)PE, TechAdmin) — архив
+- Собран BUILDERS.md (корень репы, рядом с HEROES.md): I. WinPE-сборки (12 авторов: Strelec, Xemom1/2k10, OVGorskiy, ChrisR, PhoenixPE, Gandalf, Bob.Omb, Hiren's, Medicat, yurkesha, TechAdmin, Lopatkin), II. десктопные сборки (SmokieBlahBlah, OVGorskiy, KottoSOFT, Putnik, prokazzza, ZverCD, SamLab), III. конструкторы; статусы [+]/[−]/архив, ссылки, пометка «эталон PE = Strelec»
+- Реконсиляция песочницы и репы: локальный worklog этой сессии получил ДУБЛЬ Task 29 (сессия не знала о Task 29/30 в репе) — локальный worklog заменён версией из репы (Tasks 1-30) + настоящий Task 31; ложный старт: POST /user/repos создал лишний ПУСТОЙ приватный репо rtynbirf/H-PE11 (id 1432474877) — токен его не видит (репо не входит в selection list fine-grained PAT, GET 404) → Хозяину: удалить вручную (Settings → Danger Zone) или игнорировать
+- Пуш BUILDERS.md (новый файл) + worklog.md (sha-aware апдейт) в main через contents API
+
+Stage Summary:
+- Каталог сборщиков консолидирован и НЕУБИВАЕМ: BUILDERS.md в репе; разделение ролей: HEROES.md = герои-инструменты (wimlib, pycdlib, Volume², Ventoy, Ander_73, dimo70, KTV), BUILDERS.md = авторы сборок ОС/PE
+- Станция НЕ тронута (ТОХТА=СТОП); FIX13 v2 продолжает ждать прогона: SVODKA 5/5 → ребут N1 (меню видно?) → ребут N2 (PE стартует?)
+- Реминдер Хозяину: PAT засвечен в чате — по миновании надобности отозвать/ротировать (github.com/settings/personal-access-tokens)
