@@ -89,3 +89,68 @@ TH=TweakHub, WU=WinUtil, OO=ShutUp10++, ATLAS-OPT=опция Atlas, PHX=своё
 4. **SHA256 журнала** в логе (Law 4) — целостность артефакта отслеживается.
 5. **Авто-детекции решают вместо человека**: диск (SysMain), GPU (HAGS), RAM (svchost) — у WinUtil это ручные галки в разных местах, у TH — ручные тумблеры без проверки железа.
 6. **Report-режим** — сухой прогон со списком ЭВ.1 до любых изменений.
+
+---
+
+## 6. v2.0 «SYNTHESIS» (25.10.2026): шесть школ в одном паке
+
+Директива Хозяина: «ИЗУЧИ ПРАКТИКИ И СДЕЛАЙ СВОЁ ЛУЧШЕ ЧЕМ ЕСТЬ У ВСЕХ».
+Вторая волна разведки: **Win11Debloat** (Raphire, default-режим), **privacy.sexy**
+(сверка реестровых путей), **Sophia Script** (CEIP-задачи). Первая волна (v1.1):
+TweakHub, WinUtil 2026, Atlas v0.5.0, O&O ShutUp10++.
+
+### 6.1 Найдено и исправлено в v1.1
+
+| Дефект v1.1 | Как исправлено в v2.0 |
+|---|---|
+| Флаги `$PhxCat*` объявлены, но НЕ применялись (декоративные — цели шли все) | Профильный движок: каждый блок целей обёрнут `if ($P.Cat)`, фильтрация РЕАЛЬНАЯ |
+| Verify DWord сравнивал в long → `0xFFFFFFFF` (NetworkThrottlingIndex) давал ложный `[--]` | Сравнение в `[uint32]` с fallback на строку |
+| Restore откатывал только reg-значения (сервисы/задачи/питание «вручную») | Журнал v2 (Reg/Svc/Task/Appx) + `$PhxFullRestore`: Set-Service/Enable-ScheduledTask/перерегистрация Appx/powercfg import+setactive |
+| Restore point упирался в лимит 24 ч (SystemRestorePointCreationFrequency не трогали) | Частота = 0 до Checkpoint-Computer (практика WinUtil), старое значение журнализируется |
+| rollback.ps1 не знал про сервисы/задачи/Appx | Генератор v2: reg + svc + task + Appx-подсказки |
+
+### 6.2 Новое в v2.0 по школам
+
+| Что | Школа-источник | Реализация |
+|---|---|---|
+| Профили одним переключателем (Safe/Balanced/Performance/PrivacyMax/Custom) | WinUtil Standard/Advanced, Win11Debloat modes | СВОЁ: карта `$P.*` на категории; Custom = флаги шапки как есть |
+| Debloat Appx уровнями Light/Default | Win11Debloat (default) | Light = консенсус-мусор 18 семейств; Default = +8 (почта/карты/People/StickyNotes); **ЗАЩИТНЫЙ список**: Store/winget/Defender-UI/калькулятор/блокнот/Paint/терминал/фото/камера/QuickAssist/рантаймы НЕ сносимы |
+| Provisioned-снос (образ, не только юзер) | Win11Debloat/Sophia | `Remove-AppxProvisionedPackage -Online` — новые юзеры мусор не получат (важно для эталона PHOENIX) |
+| Recall/Copilot/ClickToDo off | WinUtil «Windows AI», Win11Debloat | `DisableAIDataAnalysis` HKCU+HKLM, `DisableClickToDo`, `TurnOffWindowsCopilot` — политики, откатываемо |
+| Таскбар/Пуск: виджеты-кнопка, Copilot-кнопка, рекомендации, реклама провайдеров в Проводнике, поиск-иконка | Win11Debloat/WU | HKCU-блок `tskb`, вкус — вернёшь 1 при желании |
+| Edge-политики (StartupBoost/BackgroundMode/HubsSidebar/FirstRun) | Win11Debloat advanced | Флаг `$PhxEdgePolicy`, по умолчанию off |
+| CEIP-задачи: UsbCeip, KernelCeipTask, DmClientOnScenarioDownloadData, WER QueueReporting, DiskDiagnostic, Autochk Proxy, GatherNetworkInfo | Sophia Script / WinUtil | Всего 11 задач (v1.1 имела 4) |
+| WER off, OneSettings, LimitDiagnosticLogCollection, речь, рукописный ввод, контакты, клипборд-синк | WinUtil/privacy.sexy | Доп. политики в priv |
+| CDM 12 значений (+ever-предустановки, welcome-опыт, 338387) | O&O база + Win11Debloat | v1.1 имела 8 |
+| MMCSS Games (GPU Priority 8, Priority 6, Scheduling High, SystemResponsiveness 0) | Win11Debloat gaming | В категорию game |
+| FSE-тройка (HonorUserFSE, DXGIHonor, EFSE flags) | Win11Debloat | В категорию game |
+| USB selective suspend + PCIe ASPM off (ТОЛЬКО десктоп по детекции шасси) | WinUtil/Atlas | powercfg по GUID, ноут не трогаем |
+| Verify по перечитыванию для СЕРВИСОВ/ЗАДАЧ/NIC/питания (hex-индекс PROCTHROTTLEMIN) | СВОЕ — ни у кого нет | ЭВ.1 распространяется на все слои, не только reg |
+
+### 6.3 Сознательно отвергнуто (v2.0, продолжение §2)
+
+| Пункт | Кто | Почему |
+|---|---|---|
+| Снос Xbox-набора по умолчанию | Win11Debloat (default) | Игрокам ломает Xbox-логин; только флаг `$PhxRemoveXbox` |
+| Снос YourPhone/Maps/CommunicationsApps в Light | Win11Debloat | Полезные многим; у нас они в Default, не в Light |
+| `DisableTelemetry` через снос CompatTelRunner.exe | старые гайды | Файл системный, снос ломает servicing; мы отключаем ЗАДАЧИ и СЕРВИСЫ, файлы не трогаем |
+| Глобальный IPv6-off | WinUtil advanced | Ломает современные сети; выключаем только Teredo (бит 1) |
+| Timer resolution / PlatformTick | гайды по латентности | На Win11 24H2+ разрешение таймера пер-процессное, глобальные твики мертвы |
+| MSI-режим по умолчанию | TweakHub | Требует теста DPC-латентности на конкретной станции; флаг `$PhxMsiGpuNvme` |
+
+### 6.4 Профили: кому что
+
+| Профиль | Кому | Содержимое |
+|---|---|---|
+| Safe | рабочие/чужие станции, эталон перед sysprep | телеметрия/реклама/WU-Security/Hiberboot/AI-политики; никакого перфа и деблоата |
+| Balanced (дефолт) | дом/офис | Safe + cpu/net/game/resp/mem + NIC + Light-деблоат |
+| Performance | игровые станции | Balanced + QoL + Default-деблоат + таскбар |
+| PrivacyMax | максимум приватности | Safe + Default-деблоат + таскбар + Edge-политики (перф-блоки выкл) |
+| Custom | тонкая настройка | флаги шапки как заданы (теперь они реально работают) |
+
+### 6.5 ЭВ.1 честные [--] по пеку
+
+- Скрипт НЕ исполнялся в живой Windows (в песочнице Linux, PowerShell нет) — верифицирован статическим линтом PS 5.1 (0 ошибок) и структурным разбором; первый живой прогон: `Report`-режим на целевой станции.
+- Verify hex-парсинг powercfg зависит от локали вывода слабо (hex в любом языке), но на нестандартных сборках возможен `[--]` verify — это честный сигнал, не поломка.
+- Provisioned-снос не трогает паки, уже «вошедшие» в профиль существующих юзеров — для них нужен per-user снос (осознанное ограничение).
+
