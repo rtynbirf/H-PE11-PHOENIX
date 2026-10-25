@@ -528,3 +528,9 @@ Stage Summary:
 - Этап B1 ГОТОВ К ПРОГОНУ кроликом: кит доставлен и проверен; Хозяин запускает START_WILLIAM.cmd от админа на станции -> получит ISO 26300.9807 ru-RU Pro
 - Параллельный долг кролика: Этап A (BASE_6ORMAN_C.wim + winsat) ДО установки
 - Станция решений не получала, кроме кита (ТОХТА уважен: кит ничего не меняет в системе, только качает и собирает ISO)
+
+- ФИНАЛ B1: ISO 26100.1_PROFESSIONAL_X64_RU-RU.ISO (26H2 26300.9807 ru-RU Pro) — 4 292 098 048 байт, SHA256 f08f504ee044e83942b79660b773021ebadf66b3d45195f2156237a2a771e1c0 (3 независимых подтверждения: генерация, сумма ассетов, склейка из блобов)
+- Склад: GitHub Release william-b1-iso-26300.9807 (id 423072681) — 4 ассета по ~1GB (iso.part00..03.iso, хэши совпали байт-в-байт) + SHA256SUMS_ISO.txt; git-склад чанков 40MiB — блобы в ветках iso_tmp_1..5 + MANIFEST.json в artifacts/iso_26100.1_pro_ru/
+- Верификация: isoinfo — Volume 26100.1_X64_RU-RU, El Torito Validation OK (Hid 1, Key 55AA, checksum 0), BIOS entry bootable Nsect 8 LBA 2255 (etfsboot), EFI entry bootable Nsect 2880 LBA 1535 (efisys); VERIFICATION.txt в репе
+- Грабли финализации: git push 4.2GB рвётся сетью (~11 мин лимит) -> партионные пуши tmp-веток (5x21 блоб); PATCH /git/refs 500 на деревьях с блобами 40MB -> маленькие деревья через PATCH работают; Contents API PUT >1MB не проходит
+- Канон обновлён: MISSION_WILLIAM.md (раздел III-a «ИСПОЛНЕНИЕ B1»), worklog, VERIFICATION.txt
