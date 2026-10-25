@@ -586,3 +586,25 @@ Stage Summary:
 - ISO v2 TURNKEY ГОТОВ И УЛОЖЕН ДВУМЯ ПУТЯМИ: git-чанки (artifacts/iso_26100.1_pro_ru_v2/) + Release (путь кролика: скачать 5 частей, склеить, Rufus MBR+NTFS, загрузиться — дальше ВСЁ само)
 - B1 v2 + B2 ЗАВЕРШЕНЫ; B3 решён как no-cut (serviceability); B4 запечён; B5 частично (2/6 компонентов); B6 в ките/v2; B7 конвейер отработан; B8 верифицирован
 - Чанковая дисциплина Хозяина подтверждена практикой: песочницу можно терять в любой момент
+---
+Task ID: 42
+Agent: main (Z.ai)
+Task: TWEAKPACK v2.0 SYNTHESIS по директиве Хозяина «изучи практики и сделай своё лучше всех» — синтез шести школ, движки нового поколения, восстановление после смерти песочницы, мерж tweakpack-линии в main
+
+Work Log:
+- Восстановление после отката песочницы: локально только 3cc2a09, ветка tweakpack-v1.0 потеряна локально; состояние вытащено через Git Data API (tree recursive + blobs): v1.1 = f875c14c (PHX_TWEAKPACK.ps1 529 строк, TWEAK-MATRIX, manifest); main = 094ba137 (Task 41: ISO v2 turnkey, +203 файла)
+- Сравнение main...tweakpack-v1.0 через compare-API падало серверно (diff too long) -> 3-way разбор деревьев локально по blob-SHA: только-main 203 файла, только-tp 3, конфликт README.md (меняли обе стороны)
+- РАЗВЕДКА 2-й ВОЛНЫ: WinUtil 2026 (restore point с частотой 0, WU Security 365д/4д, Windows AI off, сервисы), Win11Debloat (Appx-уровни, taskbar/CDM), privacy.sexy (сверка путей), Sophia Script (CEIP-задачи UsbCeip/KernelCeip/DmClientOnScenario), Atlas v0.5.0 (25H2, SysMain оставляют, скрипты с state)
+- НАЙДЕН БАГ v1.1: флаги $PhxCat* объявлены, но НЕ применялись (декоративные) — в v2.0 фильтрация целей по категориям сделана РЕАЛЬНОЙ + профильный движок Safe/Balanced/Performance/PrivacyMax/Custom
+- НАЙДЕН БАГ verify v1.1: DWord сравнивался в long -> 0xFFFFFFFF (NetworkThrottlingIndex) давал ложный [--]; в v2.0 сравнение в uint32
+- PHX_TWEAKPACK v2.0 (842 строки, BOM+LF): профильный движок; debloat Light/Default с ЗАЩИТНЫМ списком (Store/winget/Defender-UI/рантаймы не сносимы) + provisioned-снос; AI-блок (Recall DisableAIDataAnalysis HKCU+HKLM, ClickToDo, Copilot-политика); таскбар-блок (TaskbarDa/Copilot/IrisRecommendations/SyncProvider/Searchbox); Edge-политики; CEIP-задач 11 (было 4); CDM 12 (было 8); MMCSS Games + FSE-тройка; USB-suspend/ASPM off только на десктопе (детекция шасси); Restore v2 (svc/task/appx/powercfg-import); verify-loop v2 на все слои (svc/task/appx/NIC re-read, power hex-индекс); точка восстановления с частотой 0; rollback.ps1-генератор v2 (reg+svc+task+appx)
+- Линт PS 5.1 (токенизатор: строки/комментарии, баланс скобок, PS7-only операторы, param-запрет, BOM): 0 ошибок
+- README: конфликт разрешён (база main + раздел TweakPack v2.0); манифест пересобран (Law 4: iso/wim/ps1/matrix/README)
+- Коммит собран git-plumbing: union-дерево main+tp по blob-SHA (без скачивания гигабайтов), родитель f875c14c, push в ветку tweakpack-v2.0, API-merge в main
+
+Stage Summary:
+- PHX_TWEAKPACK.ps1 v2.0: SHA256 49e41895e9e7ffb2805fa071677c237e56c721afcf644ceabf3966c19ec8ba71
+- docs/TWEAK-MATRIX.md §6 (v2.0: исправления v1.1, новинки по школам, отвергнутое, профили, ЭВ.1): SHA256 0e7bae8387c5d19c06471de7a88fb7532c05f2a7ec481c84a08036d76d82c64c
+- README.md (merge конфликта) SHA256 19433affb9e3cc7be6bb5c1778abefd4505b671130eb0895dcd60b5812bae1f3; manifests/H-PE11_PHOENIX_v1.3.SHA256 обновлён
+- ЭВ.1: живого прогона в Windows нет (в песочнице Linux, PowerShell отсутствует) [--]; верификация: линт 0 ошибок [x], пути реестра сверены с практиками [x], первый живой прогон — Report-режим на станции Хозяина
+
