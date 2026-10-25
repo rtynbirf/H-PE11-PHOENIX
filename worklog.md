@@ -608,3 +608,8 @@ Stage Summary:
 - README.md (merge конфликта) SHA256 19433affb9e3cc7be6bb5c1778abefd4505b671130eb0895dcd60b5812bae1f3; manifests/H-PE11_PHOENIX_v1.3.SHA256 обновлён
 - ЭВ.1: живого прогона в Windows нет (в песочнице Linux, PowerShell отсутствует) [--]; верификация: линт 0 ошибок [x], пути реестра сверены с практиками [x], первый живой прогон — Report-режим на станции Хозяина
 
+
+- ФИНАЛ ОПЕРАЦИИ (верифицировано API-разбором деревьев): merge-ход 1 (ядро ps1+matrix+manifest) = 5d5316d65184; ход 2 (README+worklog поверх main-версий) = 1dab2ab56693 = ТЕКУЩИЙ main tip
+- Родословная в main: 3b95350 (v1.0) -> f875c14c (v1.1) -> dfffdea2 (v2.0 ядро) -> merge 5d5316d -> c761b372 -> 1dab2ab5; файлов в main: 245
+- Сверка блобов main против локальных (git hash-object): ps1 e34274c4479b, matrix 29f471bcb59d, manifest 1cd8d8d7cac4, README 1fa756865361, worklog 837f11aed804 - 5/5 [x]; грабли: POST /merges 409 из-за EOF-наложений README/worklog при 3-way - обойдено двухходовой схемой
+- Ветка tweakpack-v1.0 (v1.0/v1.1 оригиналы) и tweakpack-v2.0 (tip = main) сохранены; 409-конфликт задокументирован в scripts/tweaks/api_commit2.py
