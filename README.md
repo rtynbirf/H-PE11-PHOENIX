@@ -81,3 +81,18 @@ worklog.md   — хроника операций
 PowerShell 5.1/HTA/NetFx/DISM в WIM; VC++ DLL в WIM (накатываются с носителя);
 DirectX d3dx; Login Unlocker/NTPWEdit; SSTR DriverPacks; часть драйверов
 whitelist (iigd_dch и др.); дым в эмуляторе. Тачпад-жесты — НЕТ и НЕ НУЖНЫ.
+
+## TweakPack (v1.3+, октябрь 2026): перенос TweakHub + своё
+
+Полный перенос каталога **PrimeBuild-pc/TweakHub v1.5.0** (аудит TH-AUDIT-1) в
+paste-and-run пакет в стиле бомб-скриптов + эмерджентное сверху:
+детекции по железу (диск/GPU/адаптеры), сервисный уровень телеметрии,
+персистентный бэкап (JSON-журнал + целые ключи .reg + .pow), режимы
+Report/Apply/Restore, метрики ЭВ.1. Тренды сверены: WinUtil 2026
+(Security-режим WU 365д/4д), Atlas v0.5.0 (SysMain НЕ трогаем по умолчанию).
+
+```
+scripts/tweaks/PHX_TWEAKPACK.ps1  — сам пак (Report по умолчанию: сначала показывает, потом применяет)
+docs/TWEAK-MATRIX.md              — полная матрица: что перенесено, что улучшено, что отвергнуто и почему
+```
+Запуск: admin PowerShell -> открыть файл, ПРАВИТЬ ФЛАГИ шапки -> выделить всё -> вставить в консоль.
