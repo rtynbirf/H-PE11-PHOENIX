@@ -92,3 +92,21 @@ manifests/   — SHA256 (Law 4)
 PowerShell 5.1/HTA/NetFx/DISM в WIM; VC++ DLL в WIM (накатываются с носителя);
 DirectX d3dx; Login Unlocker/NTPWEdit; SSTR DriverPacks; часть драйверов
 whitelist (iigd_dch и др.); дым в эмуляторе. Тачпад-жесты — НЕТ и НЕ НУЖНЫ.
+
+## TweakPack v2.0 «SYNTHESIS» (октябрь 2026): лучшее от шести школ + своё
+
+Синтез практик: **TweakHub v1.5.0** (аудит TH-AUDIT-1) + **WinUtil 2026** +
+**Atlas v0.5.0** + **O&O ShutUp10++** + **Win11Debloat** + **privacy.sexy/Sophia**.
+Своё сверх всех: профильный движок (Safe/Balanced/Performance/PrivacyMax/Custom
+одним переключателем), verify-loop на ВСЁ (reg/сервисы/задачи/Appx/NIC/питание
+перечитываются и сверяются), генератор самодостаточного rollback.ps1, тройной
+бэкап (JSON-журнал v2 + целые ключи .reg + .pow), debloat с ЗАЩИТНЫМ списком,
+авто-детекции (диск/GPU/RAM/шасси), SHA256 журнала (Law 4), метрики ЭВ.1.
+
+```
+scripts/tweaks/PHX_TWEAKPACK.ps1  — пак v2.0 (842 строки, Report по умолчанию, paste-and-run)
+docs/TWEAK-MATRIX.md              — полная матрица: перенос/улучшено/отвергнуто, профили, ЭВ.1
+```
+Запуск: admin PowerShell -> открыть файл, ВЫБРАТЬ `$PhxProfile` -> выделить всё -> вставить в консоль.
+`Report` ничего не меняет (план + ЭВ.1), `Apply` пишет журнал до изменений,
+`Restore` откатывает по журналу (reg + сервисы + задачи + Appx + питание).
