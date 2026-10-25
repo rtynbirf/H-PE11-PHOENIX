@@ -58,3 +58,34 @@ power | PROCTHROTTLEMIN 100, CPMINCORES 100 (AC) | TweakHub (PowerService) | п�
 | После деплоя, первый логон | Apply | HKCU-часть (resp-категория) от имени пользователя |
 | Диагностика чужой станции | Report | ничего не меняет, лог показывает план |
 | Откат | Restore | по журналу последнего Apply + reg_export/*.reg |
+
+---
+
+## 5. v1.1 — СИНТЕЗ (октябрь 2026): лучшее от всех + своё
+
+База синтеза: выгрузка config/tweaks.json WinUtil (API, 69 КБ разобран), практики O&O ShutUp10++,
+позиция Atlas, полный каталог TweakHub. Источники в поле Src каждой позиции пака:
+TH=TweakHub, WU=WinUtil, OO=ShutUp10++, ATLAS-OPT=опция Atlas, PHX=своё.
+
+| Что добавлено в v1.1 | Откуда | Зачем |
+|---|---|---|
+| CDM-набор из 8 значений ContentDeliveryManager | O&O ShutUp10++ | у TH только ConsumerFeatures; это режет ВСЮ рекламу/тихие установки/карусель локскрина |
+| NumberOfSIUFInPeriod=0 (опросники), Cortana off, FindMyDevice off, Start_TrackProgs=0 | O&O ShutUp10++ | закрыть остатки телеметрии-фидбека |
+| Геолокация: lfsvc off, ConsentStore location Deny, карты AutoUpdate off | WinUtil Location | приватность уровня сервисов |
+| Сервисы: CscService off, MapsBroker Manual, SharedAccess (ICS) off, RetailDemo off, RemoteRegistry off | WinUtil Services + своё (RemoteRegistry — security-hardening) | фоновая нагрузка + закрыть удалённый доступ к реестру |
+| SvcHostSplitThresholdInKB >= RAM | WinUtil, свой расчёт по Win32_PhysicalMemory | один svchost вместо десятков; на <6 ГБ НЕ применяем (там сплит полезен) |
+| Teredo off (бит 1 Tcpip6 DisabledComponents) | WinUtil | латентность; IPv6 сознательно НЕ выключаем |
+| Микро-анимации: TaskbarAnimations/ListviewAlphaSelect/ListviewShadow/AeroPeek/KeyboardDelay/StorageSense 01=0 | WinUtil Display | дополнение к VisualFX=2 |
+| QoL-блок (флаг): классическое контекст-меню, расширения/скрытые файлы, NumLock при загрузке (HKU\.Default + HKCU), залипание off, verbose-логон, LongPaths | WinUtil Customize | вкус сборщика; verbose-логон ещё и диагностика |
+| Reserved Storage off / disablelastaccess | WinUtil / Atlas | по флагам, по умолчанию off |
+| VBS/HVCI off | опция Atlas | ТОЛЬКО с $PhxAdvancedRisk, помечено «МИНУС защита» — против нашего дефолта, выбор за Хозяином |
+| Виджеты off политикой Dsh AllowNewsAndInterests | WinUtil + PHX-вариант | чище Appx-сноса WinUtil: откатываемо, пакет не сносим |
+
+### Своё в v1.1 — то, чего нет НИ У КОГО из четырёх:
+
+1. **Verify-loop**: после каждой записи значение перечитывается и сверяется; не совпало — [--] и видно в логе. TweakHub/WinUtil/Atlas пишут вслепую.
+2. **rollback.ps1-генератор**: рядом с журналом пишется самодостаточный скрипт отката — откат даже без пака, без знания PS.
+3. **Тройное резервирование**: JSON-журнал + целые ключи reg_export/*.reg + опциональная точка восстановления Win (флаг).
+4. **SHA256 журнала** в логе (Law 4) — целостность артефакта отслеживается.
+5. **Авто-детекции решают вместо человека**: диск (SysMain), GPU (HAGS), RAM (svchost) — у WinUtil это ручные галки в разных местах, у TH — ручные тумблеры без проверки железа.
+6. **Report-режим** — сухой прогон со списком ЭВ.1 до любых изменений.

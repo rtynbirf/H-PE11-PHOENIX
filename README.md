@@ -92,7 +92,7 @@ Report/Apply/Restore, метрики ЭВ.1. Тренды сверены: WinUti
 (Security-режим WU 365д/4д), Atlas v0.5.0 (SysMain НЕ трогаем по умолчанию).
 
 ```
-scripts/tweaks/PHX_TWEAKPACK.ps1  — сам пак (Report по умолчанию: сначала показывает, потом применяет)
+scripts/tweaks/PHX_TWEAKPACK.ps1  — сам пак v1.1 (синтез TweakHub+WinUtil+ShutUp10+Atlas; Report по умолчанию, verify-loop, rollback.ps1)
 docs/TWEAK-MATRIX.md              — полная матрица: что перенесено, что улучшено, что отвергнуто и почему
 ```
 Запуск: admin PowerShell -> открыть файл, ПРАВИТЬ ФЛАГИ шапки -> выделить всё -> вставить в консоль.

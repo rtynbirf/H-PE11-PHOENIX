@@ -1,27 +1,25 @@
 ﻿# =====================================================================
-# H-PE11 // PHOENIX TWEAKPACK v1.0 (paste-and-run)
-# База: перенос полного каталога PrimeBuild-pc/TweakHub v1.5.0 (аудит TH-AUDIT-1)
-# Тренды: WinUtil 2026 (restore-point -> твики, Security-режим WU),
-#         Atlas v0.5.0 (SysMain оставляем, 24H2/25H2), сообщество 2026
-#         (NTI - смешанные результаты, HAGS - от GPU).
-# Эмерджентное против TweakHub:
-#   1) Бэкап ПЕРСИСТЕНТНЫЙ: JSON-журнал + .reg-экспорты рядом со скриптом
-#      (восстановление возможно даже без этого пака, любым regedit).
-#   2) Авто-решения по железу: SysMain/Prefetcher решаются по типу диска,
-#      HAGS проверяет поддержку GPU, WSearch решается по диску.
-#   3) Сервисный уровень телеметрии (DiagTrack/dmwappushservice/CEIP-задачи) -
-#      TweakHub трогает только политики реестра.
-#   4) MSI mode + interrupt affinity для GPU/NVMe (из UI TweakHub -> в пакет).
-#   5) Режимы Report/Apply/Restore + метрики ЭВ.1 в стиле бомб-скриптов.
-#   6) Разделение "запечь в эталон" vs "после деплоя" для конвейера PHOENIX.
+# H-PE11 // PHOENIX TWEAKPACK v1.1 (paste-and-run) — СИНТЕЗ ЛУЧШЕГО
+# Базы: TweakHub v1.5.0 (полный каталог) + WinUtil 2026 (config/tweaks.json
+#       выгружен API и разобран) + Atlas v0.5.0 + O&O ShutUp10++ практики.
+# СВОЁ СВЕРХ ВСЕХ: (1) verify-loop — после КАЖДОЙ записи значение
+#       перечитывается и сверяется, иначе [--]; (2) генератор
+#       rollback.ps1 — самодостаточный откат без этого пака; (3) опциональный
+#       restore point Win; (4) SHA256 журнала (Law 4); (5) авто-детекции
+#       диск/GPU/RAM (svchost-split по объёму памяти); (6) сервисный уровень
+#       телеметрии; (7) ЭВ.1 и логи в стиле бомб-скриптов.
+# Отвергнуто по трендам: TcpAckFrequency (плацебо), Spectre/Meltdown-off
+#       (security-линия), снос Edge/OneDrive (совместимость Win11 Creator),
+#       полное отключение WU (умнее задержки 365д/4д).
 # Закон: ЧЕЛОВЕК=СИСТЕМА=ЦЕЛОЕ. ЭВ.1: недоступно = НЕ сделано (метка [--]).
 # Требования: Windows 11 24H2/25H2, консоль PowerShell ОТ АДМИНИСТРАТОРА.
-# Как запускать: выделить ВСЁ, вставить в admin PS, Enter. Флаги править ДО вставки.
 # =====================================================================
 
 # ==== ФЛАГИ (править до вставки) ====
 $PhxMode         = 'Report'  # 'Report' = только показать план | 'Apply' = применить | 'Restore' = восстановить из журнала
 $PhxBackupDir    = ''        # пусто = рядом со скриптом\PHX_TWEAKBACKUP_<ts>; иначе укажи свой путь
+$PhxRestorePoint = $false   # $true = создать точку восстановления Win перед Apply (если SystemRestore включён)
+$PhxQol          = $true    # QoL-блок (вкусовое): классическое контекст-меню, расширения/скрытые файлы, NumLock, залипание off, verbose-логон, LongPaths
 $PhxCatCpu       = $true     # CPU-планирование и питание
 $PhxCatNetwork   = $true     # Сеть: throttling, DO, NIC-пресет (moderation/EEE/green-ethernet off)
 $PhxCatGaming    = $true     # Игра: GameDVR, FSE, GameMode, GameBar; HAGS - по поддержке GPU
@@ -35,7 +33,9 @@ $PhxCatMisc      = $true     # Подробный BSOD, metadata с сети, д
 $PhxNicLowLat    = $true     # NIC-пресет низкой задержки (InterruptModeration/EEE/GreenEthernet off)
 $PhxMsiGpuNvme   = $false    # $true = MSI mode + мягкая affinity для GPU/NVMe (требует теста на станции!)
 $PhxWSearchOff   = $false    # $true = отключить Windows Search (на SSD обычно НЕ надо)
-$PhxAdvancedRisk = $false    # $true = разрешить твики risk 5 (SearchOrderConfig 0 и т.п.)
+$PhxAdvancedRisk = $false    # $true = разрешить твики risk 5 (SearchOrderConfig 0) и VBS/HVCI-off (security! только для игровых станций под твою ответственность)
+$PhxReservedStor = $false   # $true = отключить Reserved Storage (~7 ГБ, DISM; для эталона удобно)
+$PhxLastAccess   = $false   # $true = fsutil disablelastaccess (микро-оптимизация NTFS, тренд Atlas)
 $PhxKeepMount    = $false    # зарезервировано (симметрия бомб-скриптам)
 # =====================================================================
 
@@ -96,10 +96,12 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
   # ---------- 1. Механика: бэкап до записи (персистентный журнал + .reg) ----------
   $script:Journal = New-Object System.Collections.Generic.List[object]
   function Get-PhxValue([string]$Path, [string]$Name) {
+    if ($Name -eq '(Default)') { $Name = '' }  # PS-нотация дефолтного значения
     try { return (Get-ItemPropertyValue -LiteralPath $Path -Name $Name -ErrorAction Stop) } catch { return $null }
   }
   function Backup-PhxValue([string]$Path, [string]$Name) {
     # Запоминаем ОРИГИНАЛ до первой записи. absent = значения не было (restore удалит).
+    if ($Name -eq '(Default)') { $Name = '' }  # PS-нотация дефолтного значения
     $existing = $null
     $kind = $null
     try {
@@ -116,6 +118,11 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     Backup-PhxValue $Path $Name | Out-Null
     try {
       New-ItemProperty -LiteralPath $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+      # VERIFY-LOOP (своё): перечитываем и сверяем — недоступно = НЕ сделано
+      $back = Get-PhxValue $Path $Name
+      if ($Type -eq 'String') { $ok = ([string]$back -eq [string]$Value) }
+      else { $ok = ([long]$back -eq [long]$Value) }
+      if (-not $ok) { Write-Log ("  !! verify FAILED: " + $Path + "\" + $Name + " записано=" + $back + " ожидалось=" + $Value); return $false }
       return $true
     } catch { Write-Log ("  !! сбой записи " + $Path + "\" + $Name + ": " + $_.Exception.Message); return $false }
   }
@@ -123,6 +130,38 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     $json = $script:Journal | ConvertTo-Json -Depth 4
     Set-Content -LiteralPath $journalPath -Value $json -Encoding UTF8
     Write-Log ("Журнал бэкапа: " + $journalPath + " (" + $script:Journal.Count + " значений)")
+    # Law 4: SHA256 журнала в лог
+    $h = (Get-FileHash -LiteralPath $journalPath -Algorithm SHA256).Hash
+    Write-Log ("SHA256 журнала: " + $h)
+  }
+
+  # Генератор самодостаточного rollback.ps1 (своё: откат без этого пака)
+  function Write-Generate-Rollback {
+    $rb = Join-Path $bdir 'rollback.ps1'
+    $lines = @(
+      '# rollback.ps1 - автосгенерирован PHX_TWEAKPACK ' + $ts,
+      '# Откат ВСЕХ реестровых значений по журналу. Запуск в admin PS.',
+      '$ErrorActionPreference = ''Continue'''
+    )
+    foreach ($r in $script:Journal) {
+      $nm = if ($r.Name -eq '') { '(default)' } else { $r.Name }
+      $p = ($r.Path -replace "'", "''")
+      if ($r.WasPresent) {
+        $kind = if ($r.Kind) { $r.Kind } else { 'String' }
+        if ($kind -eq 'String' -or $kind -eq 'ExpandString') {
+          $v = if ($null -ne $r.Old) { ([string]$r.Old) -replace "'", "''" } else { '' }
+          $lines += ("New-ItemProperty -LiteralPath '" + $p + "' -Name '" + $nm + "' -Value '" + $v + "' -PropertyType " + $kind + " -Force | Out-Null")
+        } else {
+          $v = if ($null -ne $r.Old) { [long]$r.Old } else { 0 }
+          $lines += ("New-ItemProperty -LiteralPath '" + $p + "' -Name '" + $nm + "' -Value " + $v + " -PropertyType " + $kind + " -Force | Out-Null")
+        }
+      } else {
+        $lines += ("Remove-ItemProperty -LiteralPath '" + $p + "' -Name '" + $nm + "' -ErrorAction SilentlyContinue")
+      }
+    }
+    $lines += ('"Готово: отработано записей: ' + $script:Journal.Count + '"')
+    Set-Content -LiteralPath $rb -Value $lines -Encoding UTF8
+    Set-EV1 'rollback.ps1 сгенерирован' $true $rb
   }
 
   # Персистентный .reg-экспорт ДЛЯ ВСЕГО списка целей ДО применения (двойная страховка)
@@ -133,12 +172,13 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     $n = 0
     foreach ($t in $script:Targets) {
       if ($t.Svc -or $t.Task) { continue }
-      $regPath = $t.Path -replace '^HKLM:\\','HKLM\' -replace '^HKCU:\\','HKCU\'
+      $rawPath = $t.Path -replace '^Registry::',''
+      $regPath = $rawPath -replace '^HKLM:\\','HKLM\' -replace '^HKCU:\\','HKCU\'
       $file = Join-Path $regDir (($regPath -replace '[\\:]','_') + '.reg')
       & reg.exe export $regPath $file /y 2>$null | Out-Null
       if ($LASTEXITCODE -eq 0) { $n++ }
     }
-    Set-Content -LiteralPath (Join-Path $bdir 'README.txt') -Value @('PHX TWEAKPACK pre-export (до применения)','Каждый .reg - состояние ЦЕЛОГО ключа ДО применения твиков.','Восстановление: reg import <файл.reg> или двойной клик.') -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $bdir 'README.txt') -Value @('PHX TWEAKPACK pre-export (до применения)','Каждый .reg - состояние ЦЕЛОГО ключа ДО применения твиков.','Восстановление: reg import <файл.reg> или двойной клик. Рядом: phx_tweak_journal.json + rollback.ps1.') -Encoding UTF8
     Set-EV1 'PRE-экспорт .reg ключей до применения' ($n -gt 0) ("reg_export: " + $n + " ключей")
   }
 
@@ -153,6 +193,7 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     @{ Cat='net'; Path='HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'; Name='NetworkThrottlingIndex'; Value=[int]-1; Type='DWord'; Risk=3; Src='TH'; Note='снять network-throttle (0xFFFFFFFF); эффект от системы к системе' },
     @{ Cat='net'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'; Name='DOPercentageMaxBackgroundBandwidth'; Value=30; Type='DWord'; Risk=2; Src='TH'; Note='DO фоновая загрузка <= 30%' },
     @{ Cat='net'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'; Name='DODownloadMode'; Value=1; Type='DWord'; Risk=2; Src='PHX'; Note='DO mode 1 (только LAN) - лимит p2p-раздачи' },
+    @{ Cat='net'; Path='HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters'; Name='DisabledComponents'; Value=1; Type='DWord'; Risk=2; Src='WU'; Note='Teredo off (бит 1; IPv6 НЕ трогаем - не путать с DisableIPv6)' },
     # --- Игра (TweakHub: Gaming) ---
     @{ Cat='game'; Path='HKCU:\System\GameConfigStore'; Name='GameDVR_FSEBehaviorMode'; Value=2; Type='DWord'; Risk=1; Src='TH'; Note='полноэкранный режим без оптимизаций' },
     @{ Cat='game'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'; Name='AppCaptureEnabled'; Value=0; Type='DWord'; Risk=1; Src='TH'; Note='GameDVR capture off' },
@@ -169,6 +210,13 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     @{ Cat='resp'; Path='HKCU:\Control Panel\Mouse'; Name='MouseThreshold2'; Value='0'; Type='String'; Risk=1; Src='TH'; Note='акселерация мыши off (3/3)' },
     @{ Cat='resp'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'; Name='EnableTransparency'; Value=0; Type='DWord'; Risk=1; Src='TH'; Note='прозрачность off (опция вкуса)' },
     @{ Cat='resp'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'; Name='VisualFXSetting'; Value=2; Type='DWord'; Risk=1; Src='TH'; Note='визуальные эффекты -> максимум производительности' },
+    # --- Микро-анимации (WinUtil Display-набор, дополнение к VisualFX=2) ---
+    @{ Cat='resp'; Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='TaskbarAnimations'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='анимации таскбара off' },
+    @{ Cat='resp'; Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='ListviewAlphaSelect'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='полупрозрачное выделение off' },
+    @{ Cat='resp'; Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='ListviewShadow'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='тень под иконками off' },
+    @{ Cat='resp'; Path='HKCU:\Software\Microsoft\Windows\DWM'; Name='EnableAeroPeek'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='Aero Peek off' },
+    @{ Cat='resp'; Path='HKCU:\Control Panel\Keyboard'; Name='KeyboardDelay'; Value='0'; Type='String'; Risk=1; Src='WU'; Note='задержка клавиатуры 0' },
+    @{ Cat='resp'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy'; Name='01'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='Storage Sense off (не трогает файлы)' },
     # --- Приватность/телеметрия: политики (TweakHub: Privacy) ---
     @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; Name='AllowTelemetry'; Value=0; Type='DWord'; Risk=3; Src='TH'; Note='на Pro -> минимум (1); 0 = только Enterprise/Edu' },
     @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'; Name='EnableActivityFeed'; Value=0; Type='DWord'; Risk=3; Src='TH'; Note='история активностей off' },
@@ -177,6 +225,22 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name='DisableWindowsConsumerFeatures'; Value=1; Type='DWord'; Risk=2; Src='TH'; Note='consumer-контент/спонсируемые приложения off' },
     @{ Cat='priv'; Path='HKCU:\Software\Policies\Microsoft\Windows\Explorer'; Name='DisableSearchBoxSuggestions'; Value=1; Type='DWord'; Risk=1; Src='TH'; Note='Bing-подсказки в поиске off' },
     @{ Cat='priv'; Path='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Name='SettingsPageVisibility'; Value='hide:aicomponents'; Type='String'; Risk=4; Src='TH'; Note='спрятать страницу AI-компонентов' },
+    # --- Анти-реклама CDM-набор (O&O ShutUp10++ / WinUtil практики; у TH только ConsumerFeatures) ---
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='ContentDeliveryAllowed'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: доставка контента off (1/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='OemPreInstalledAppsEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: OEM-предустановки off (2/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='PreInstalledAppsEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: предустановки off (3/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='SilentInstalledAppsEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: тихая установка приложений off (4/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='SoftLandingEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: советы/подсказки off (5/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='RotatingLockScreenEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: карусель экрана блокировки off (6/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='RotatingLockScreenOverlayEnabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: оверлей на экране блокировки off (7/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name='SubscribedContent-338388Enabled'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='CDM: рекомендации в Пуске off (8/8)' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Siuf\Rules'; Name='NumberOfSIUFInPeriod'; Value=0; Type='DWord'; Risk=1; Src='OO'; Note='опросник «поделитесь мнением» off' },
+    @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name='AllowCortana'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='Cortana off' },
+    @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice'; Name='AllowFindMyDevice'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='Найти устройство off' },
+    @{ Cat='priv'; Path='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='Start_TrackProgs'; Value=0; Type='DWord'; Risk=2; Src='OO'; Note='трекинг запусков приложений off' },
+    @{ Cat='priv'; Path='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name='Value'; Value='Deny'; Type='String'; Risk=3; Src='WU'; Note='геолокация приложений: Deny' },
+    @{ Cat='priv'; Path='HKLM:\SYSTEM\Maps'; Name='AutoUpdateEnabled'; Value=0; Type='DWord'; Risk=2; Src='WU'; Note='автообновление карт off' },
+    @{ Cat='priv'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Dsh'; Name='AllowNewsAndInterests'; Value=0; Type='DWord'; Risk=2; Src='WU+PHX'; Note='виджеты off политикой (чище Appx-сноса WinUtil — откатываемо)' },
     # --- Приватность: СЕРВИСНЫЙ уровень (эмерджентное - у TweakHub нет) ---
     @{ Cat='priv'; Svc='DiagTrack'; StartType='Disabled'; Risk=2; Src='PHX'; Note='Connected User Experiences and Telemetry - главный сборщик' },
     @{ Cat='priv'; Svc='dmwappushservice'; StartType='Disabled'; Risk=2; Src='PHX'; Note='WAP Push Message Routing - канал телеметрии' },
@@ -185,6 +249,13 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     @{ Cat='priv'; Task='\Microsoft\Windows\Application Experience\ProgramDataUpdater'; Action='Disable'; Risk=2; Src='PHX'; Note='CEIP-сбор программных данных' },
     @{ Cat='priv'; Task='\Microsoft\Windows\Customer Experience Improvement Program\Consolidator'; Action='Disable'; Risk=2; Src='PHX'; Note='CEIP Consolidator' },
     @{ Cat='priv'; Task='\Microsoft\Windows\Feedback\Siuf\DmClient'; Action='Disable'; Risk=2; Src='PHX'; Note='канал фидбека' },
+    # --- Сервисы WinUtil (Essential) + геолокация + security-hardening ---
+    @{ Cat='priv'; Svc='lfsvc'; StartType='Disabled'; Risk=2; Src='WU'; Note='геолокационная служба' },
+    @{ Cat='misc'; Svc='CscService'; StartType='Disabled'; Risk=3; Src='WU'; Note='офлайн-файлы (клиентское кэширование сети)' },
+    @{ Cat='misc'; Svc='MapsBroker'; StartType='Manual'; Risk=2; Src='WU'; Note='загрузчик карт - в ручной' },
+    @{ Cat='misc'; Svc='SharedAccess'; StartType='Disabled'; Risk=3; Src='WU'; Note='Internet Connection Sharing (ICS)' },
+    @{ Cat='misc'; Svc='RemoteRegistry'; StartType='Disabled'; Risk=2; Src='PHX'; Note='удалённый реестр - security-hardening' },
+    @{ Cat='misc'; Svc='RetailDemo'; StartType='Disabled'; Risk=2; Src='WU'; Note='магазинный демо-режим' },
     # --- Windows Update (тренд WinUtil: Security-режим умнее полного отключения) ---
     @{ Cat='wu'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'; Name='NoAutoRebootWithLoggedOnUsers'; Value=1; Type='DWord'; Risk=1; Src='WU'; Note='без авто-ребута под юзером' },
     @{ Cat='wu'; Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'; Name='DeferFeatureUpdates'; Value=1; Type='DWord'; Risk=2; Src='WU;TH'; Note='фич-апдейты задерживаем' },
@@ -228,6 +299,33 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     } else {
       Set-EV1 'HAGS (HwSchMode=2)' $false ('GPU не распознан как поддерживающий: ' + $gpuName + ' - тфик ИСКЛЮЧЁН из плана')
     }
+  }
+
+  # --- QoL-блок (вкусовое, WinUtil Customize Preferences) ---
+  if ($PhxQol) {
+    $script:Targets += @{ Cat='qol'; Path='HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'; Name='(Default)'; Value=''; Type='String'; Risk=1; Src='WU'; Note='классическое контекст-меню Win10 (вступит после рестарта explorer)' }
+    $script:Targets += @{ Cat='qol'; Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='HideFileExt'; Value=0; Type='DWord'; Risk=1; Src='WU'; Note='показывать расширения файлов' }
+    $script:Targets += @{ Cat='qol'; Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name='Hidden'; Value=1; Type='DWord'; Risk=1; Src='WU'; Note='показывать скрытые файлы' }
+    $script:Targets += @{ Cat='qol'; Path='Registry::HKEY_USERS\.Default\Control Panel\Keyboard'; Name='InitialKeyboardIndicators'; Value='2'; Type='String'; Risk=1; Src='WU'; Note='NumLock on при загрузке (до логона)' }
+    $script:Targets += @{ Cat='qol'; Path='HKCU:\Control Panel\Keyboard'; Name='InitialKeyboardIndicators'; Value='2'; Type='String'; Risk=1; Src='WU'; Note='NumLock on (текущий юзер)' }
+    $script:Targets += @{ Cat='qol'; Path='HKCU:\Control Panel\Accessibility\StickyKeys'; Name='Flags'; Value='506'; Type='String'; Risk=1; Src='WU'; Note='залипание Shift-диалогов off' }
+    $script:Targets += @{ Cat='qol'; Path='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Name='VerboseStatus'; Value=1; Type='DWord'; Risk=1; Src='WU'; Note='verbose-логон: видеть этапы загрузки (полезно сборщику)' }
+    $script:Targets += @{ Cat='qol'; Path='HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem'; Name='LongPathsEnabled'; Value=1; Type='DWord'; Risk=1; Src='WU'; Note='длинные пути >260 символов' }
+  }
+  # --- SvcHost split: порог выше RAM = один svchost на всё (WinUtil, свой расчёт RAM) ---
+  try {
+    $ramKb = [long]((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1KB)
+    if ($ramKb -ge 6291456) {
+      $script:Targets += @{ Cat='misc'; Path='HKLM:\SYSTEM\CurrentControlSet\Control'; Name='SvcHostSplitThresholdInKB'; Value=$ramKb; Type='DWord'; Risk=2; Src='WU+PHX'; Note=('svchost без сплита (RAM ' + [math]::Round($ramKb/1MB) + ' ГБ -> порог выше памяти)') }
+      Set-EV1 'SvcHostSplitThreshold' $true ('RAM ' + [math]::Round($ramKb/1MB) + ' ГБ - порог выставлен')
+    } else {
+      Set-EV1 'SvcHostSplitThreshold' $true ('RAM < 6 ГБ - сплит ОСТАВЛЕН (правильно для малой памяти)')
+    }
+  } catch { Set-EV1 'SvcHostSplitThreshold' $false ('RAM не определена: ' + $_.Exception.Message) }
+  # --- VBS/HVCI-off: ТОЛЬКО по явному флагу AdvancedRisk (security! по умолчанию НЕТ) ---
+  if ($PhxAdvancedRisk) {
+    $script:Targets += @{ Cat='misc'; Path='HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard'; Name='EnableVirtualizationBasedSecurity'; Value=0; Type='DWord'; Risk=5; Src='ATLAS-OPT'; Note='VBS off: +FPS, МИНУС защита (твоя ответственность)' }
+    $script:Targets += @{ Cat='misc'; Path='HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity'; Name='Enabled'; Value=0; Type='DWord'; Risk=5; Src='ATLAS-OPT'; Note='HVCI (Memory Integrity) off: +FPS, МИНУС защита' }
   }
 
   # Memory-категория: авто-решение по диску (тренд Atlas v0.4.1+: SysMain ОСТАВЛЯЮТ)
@@ -307,6 +405,20 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     Write-Log "ВНИМАНИЕ: MSI-изменения подхватятся ТОЛЬКО после перезагрузки. Проверь DPC-латентность до/после."
   }
 
+  # ---------- 6b. Файловый слой (тренды WinUtil/Atlas) ----------
+  function Invoke-PhxFilesystem {
+    Write-Log ""
+    Write-Log "== FILESYSTEM (fsutil/DISM) =="
+    if ($PhxLastAccess) {
+      & fsutil behavior set disablelastaccess 1 2>$null | Out-Null
+      Set-EV1 'disablelastaccess' ($LASTEXITCODE -eq 0) 'NTFS не пишет время последнего доступа (тренд Atlas)'
+    } else { Set-EV1 'disablelastaccess' $true 'пропущено по флагу (по умолчанию off)' }
+    if ($PhxReservedStor) {
+      & dism.exe /Online /Set-ReservedStorageState /State:Disabled 2>$null | Out-Null
+      Set-EV1 'Reserved Storage off' ($LASTEXITCODE -eq 0) 'освободить ~7 ГБ (WinUtil)'
+    } else { Set-EV1 'Reserved Storage off' $true 'пропущено по флагу (по умолчанию off)' }
+  }
+
   # ---------- 7. Report / Apply / Restore ----------
   function Show-PhxReport {
     Write-Log ""
@@ -338,6 +450,12 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
   function Invoke-PhxApply {
     Write-Log ""
     Write-Log ("== APPLY: применение (" + $script:Targets.Count + " позиций) ==")
+    if ($PhxRestorePoint) {
+      try {
+        Checkpoint-Computer -Description "PHX TWEAKPACK $ts" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
+        Set-EV1 'точка восстановления Win' $true 'Checkpoint-Computer выполнен'
+      } catch { Set-EV1 'точка восстановления Win' $false ($_.Exception.Message + ' (SystemRestore может быть выключен/лимит 24ч)') }
+    }
     # Сначала PRE-экспорт всех reg-целей (двойная страховка против журнала)
     Export-PhxReg
     $cat = ''
@@ -366,7 +484,9 @@ $PhxKeepMount    = $false    # зарезервировано (симметри�
     Invoke-PhxPower
     if ($PhxNicLowLat)  { Invoke-PhxNic }
     if ($PhxMsiGpuNvme) { Invoke-PhxMsi }
+    Invoke-PhxFilesystem
     Save-PhxJournal
+    Write-Generate-Rollback
   }
 
   function Invoke-PhxRestore {
