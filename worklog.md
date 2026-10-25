@@ -613,3 +613,26 @@ Stage Summary:
 - Родословная в main: 3b95350 (v1.0) -> f875c14c (v1.1) -> dfffdea2 (v2.0 ядро) -> merge 5d5316d -> c761b372 -> 1dab2ab5; файлов в main: 245
 - Сверка блобов main против локальных (git hash-object): ps1 e34274c4479b, matrix 29f471bcb59d, manifest 1cd8d8d7cac4, README 1fa756865361, worklog 837f11aed804 - 5/5 [x]; грабли: POST /merges 409 из-за EOF-наложений README/worklog при 3-way - обойдено двухходовой схемой
 - Ветка tweakpack-v1.0 (v1.0/v1.1 оригиналы) и tweakpack-v2.0 (tip = main) сохранены; 409-конфликт задокументирован в scripts/tweaks/api_commit2.py
+
+---
+Task ID: ALPHA-1
+Agent: main (Z.ai)
+Task: PHOENIX-ALPHA 0.1 — готовый ISO для испытания на станции Хозяина (6ORMAN): базис 26H2 26300.9807 + запечённый деплой-кит с PHX_TWEAKPACK v2.0 SYNTHESIS
+
+Work Log:
+- Директива Хозяина: «готовый ISO или WIM или ESD... попробую поставить... будем синтезировать всё лучшее». Твикпак v2.0 (842 строки) уже в main (TH-SYNTH-2) — ALPHA запекает его в установочный образ
+- Найден базис в git-складе: 26100.1_PROFESSIONAL_X64_RU-RU.ISO (26H2 26300.9807 ru-RU Pro, Task 40), 103 чанка в дереве коммита d87cc981e703 + MANIFEST.json с blob_sha1/sha256 каждого чанка
+- Каналы доставки из песочницы: Release-объекты — полумёртвые (бёрст ~10МБ/с -> 0 байт; auto-cut/resume/2-воркеры не спасли) [--]; Git Blob API — СТАБИЛЕН [x]: 103 blob (base64), каждый чанк проверен sha256 по манифесту, итог f08f504ee044e83942b79660b773021ebadf66b3d45195f2156237a2a771e1c0 — БИТ-В-БИТ [x]
+- ISO9660-слой базиса ПУСТ (genisoimage, все данные в UDF 1.02) — xorriso grow-мод невозможен; добыты 7zip 25.01 + xorriso 1.5.6 + genisoimage 1.1.11 из debian-pool (dpkg -x без root)
+- Деплой-кит ALPHA: autounattend.xml v3 (LabConfig bypass TPM/SecureBoot/CPU/RAM/Storage + MoSetup, ru-RU, локальная учётка 6orman/Phoenix-2026, autologon 1, ДИСК ВРУЧНУЮ — авто-вайп запрещён), setupcomplete.cmd, PHX-SETUP-COMPLETE.ps1 (ярлыки Public Desktop + HW-аудит + TWEAKPACK REPORT-ONLY), PHOENIX-CONTROL.cmd (меню 8 пунктов, ASCII), PHX-RUN.ps1 (исполнитель профилей поверх paste-and-run v2.0), PHX-HW-AUDIT.ps1 (OS/CPU/RAM/GPU/диски/NIC/UEFI/TPM -> txt+json, ЭВ.1), README-ALPHA-RU.txt
+- Линт кита: PS-токенайзер (скобки/PS7-only/BOM), XML-схема unattend (запрет DiskConfiguration!), cmd ASCII+CRLF — 0 ошибок [x]; найден и исправлен дефект финализатора (encode ПОСЛЕ открытия файла резал cmd до 0 байт)
+- Пересборка ISO: 7z x UDF -> дерево 1050 файлов, __chunk_data (мусор стрим-пуша Task 40) УДАЛЁН, инжект кита (autounattend в корень + sources/$OEM$), genisoimage -iso-level 3 -udf -J -joliet-long + El Torito
+- Верификация: El Torito BIOS /boot/etfsboot.com no-emul 8 секторов + UEFI /efi/microsoft/boot/efisys.bin no-emul 2880 секторов — совпало с эталоном Task 41 [x]; install.wim из ISO sha256 7a58b99133b1d35f... == исходному дереву [x]; autounattend из ISO 4c974b7c709d5226... == киту [x]; UDF-слой читается 7z, $OEM$ в обоих слоях [x]
+- Поставка: Release phoenix-alpha-0.1 (id 423405628): 5 частей по 858 515 047 B + SHA256SUMS.txt + KIT.zip + README — все rc=201, size-check OK; КРУГОВАЯ ПРОВЕРКА part04 скачиванием: 858 515 044 B БИТ-В-БИТ, sha256 2f0f79e5... == манифесту [x]
+- Кит-ZIP в download/PHOENIX-ALPHA-0.1-KIT.zip (35 024 B)
+
+Stage Summary:
+- PHOENIX-ALPHA-0.1.iso: 4 292 575 232 B, SHA256 612ea5308315de602a5f50ffede68595dc3f8d7c399fc71f0c6baba5119ac0f8
+- Внутри: Win11 Pro 26H2 26300.9807 ru-RU (базис Task 40, БИТ-В-БИТ) + autounattend v3 + $OEM$-кит с PHX_TWEAKPACK v2.0 (Report-only авто-слой; Apply решает Хозяин через CONTROL-меню)
+- ЭВ.1: живой прогон в Windows [--] (песочница Linux; статика 0 ошибок [x], El Torito/UDF/хеши [x]); физическая загрузка на станции 6ORMAN — докажет Хозяин (Rufus MBR+NTFS, как у WILLIAM v2)
+- Пароль ALPHA: Phoenix-2026 (сменить после входа); откат: [7] RESTORE / rollback.ps1 / reg_export
