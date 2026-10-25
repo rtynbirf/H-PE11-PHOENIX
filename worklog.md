@@ -534,3 +534,33 @@ Stage Summary:
 - Верификация: isoinfo — Volume 26100.1_X64_RU-RU, El Torito Validation OK (Hid 1, Key 55AA, checksum 0), BIOS entry bootable Nsect 8 LBA 2255 (etfsboot), EFI entry bootable Nsect 2880 LBA 1535 (efisys); VERIFICATION.txt в репе
 - Грабли финализации: git push 4.2GB рвётся сетью (~11 мин лимит) -> партионные пуши tmp-веток (5x21 блоб); PATCH /git/refs 500 на деревьях с блобами 40MB -> маленькие деревья через PATCH работают; Contents API PUT >1MB не проходит
 - Канон обновлён: MISSION_WILLIAM.md (раздел III-a «ИСПОЛНЕНИЕ B1»), worklog, VERIFICATION.txt
+---
+Task ID: 40
+Agent: main (Z.ai)
+Task: Приказ Хозяина: «ДЕЛАЙ! КРОЛИК ЗАНЯТ СЕМЬЁЙ — ВСЁ НА ТВОЕЙ СОВЕСТИ! РЕПУ ЧАНКИ МЕЛКИЕ РЕЖЬ И ХРАНИ ТАМ, ПОТОМ ОТТУДА ПОДТЯГИВАЙ ПО МЕРЕ НАДОБНОСТИ!» — B1 полностью в песочнице, склад чанков в репе
+
+Work Log:
+- Кит WILLIAM_B1_KIT_v1.zip (4.5MB, sha256 10a9e842...) ЗАЛОЖЕН В РЕПУ как постоянное хранилище (litterbox живёт 72ч — не склад): commit f28d07d0a9b6, artifacts/WILLIAM_B1_KIT_v1/ + MANIFEST.json
+- Написан и проверен ЧАНК-СКЛАД chunk_tool.py (split/push/pull через Git Data API: блобы по blob-sha1 с пропуском существующих, один коммит на файл): roundtrip-тест split->push->pull на ките — byte-perfect, sha256 совпал; скрипт самозаложен в репу (commit fc0afa294df8, scripts/chunk_tool.py)
+- B1 ПОЛНОСТЬЮ ВЫПОЛНЕН В ПЕСОЧНИЦЕ (станция НЕ тронута): добыт UUP-базис 26300.9807 ru-RU Pro — 97 файлов ~3.3GB (SHA1 97/97); свежие ссылки через JOIN по sha1: имена из листа Task 39 + url из api.uupdump.net get.php edition=0 (12296 файлов всего, 83GB — отфильтровано до pro-набора)
+- MSU не качались (KB5127936 4.6GB + KB5043080 0.5GB — конвертеру при AddUpdates=0 не нужны; у Unix-конвертера AddUpdates нет вовсе)
+- Инструментарий БЕЗ root: aria2c 1.37.0 musl-static (abcfy2), wimlib-imagex 1.14.4 + genisoimage 1.1.11 + cabextract 1.11 + chntpw 140201 — через apt-get download + dpkg -x в локальный префикс (LD_LIBRARY_PATH); sudo заперт
+- Конвертация ОФИЦИАЛЬНЫМ convert.sh v0.7.3 из git.uupdump.net/uup-dump/converter («делай как они»): FOD cab->esd, install.wim из professional_ru-ru.esd (LZMS maximum, --ref globs), boot.wim из WinRE-образа с chntpw-правкой SystemRoot/InstRoot, ISO genisoimage -b etfsboot + eltorito-alt efisys -udf -iso-level 3
+- НАЙДЕНЫ И ОБЕЗВРЕЖЕНЫ ГРАБЛИ (свои, не повторены ошибки мастеров):
+  1) find не следует симлинку UUPs -> «No metadata ESDs» -> hardlink-каталог (cp -al, без дублирования 3.3GB)
+  2) cleanup() их конвертера УБИВАЕТ ISODIR+tempDir при ЛЮБОЙ ошибке — дважды потерян install.wim (15 мин LZMS) -> genisoimage-обёртка со STANDBY-режимом (ждёт GO_SIGNAL, давая время почистить диск)
+  3) Пик диска 10.6GB > 9.9GB песочницы -> split-ЗАМЕСТИТЕЛЬ в PATH: ISO СТРИМИТСЯ ПРЯМО В РЕПУ блобами 40MiB (Git Data API), на диске только ISODIR; итог один коммит
+  4) uupdump кеширует ПРОТУХШИЕ WU-ссылки (P1 в прошлом -> 403) -> монитор b1_url_monitor.py ждёт P1 > now+600с, качает только свежие
+- ISO собран: 26100.1_PROFESSIONAL_X64_RU-RU.ISO (имя по их схеме от базового ядра 26100.1; содержимое = 26H2 26300.9807 ru-RU Pro), ~4.2GB, чанки 40MiB в artifacts/iso_26100.1_pro_ru/ + MANIFEST.json (sha256 каждого чанка + общий file_sha256)
+
+Stage Summary:
+- B1 ЗАВЕРШЁН: ISO 26H2 26300.9807 ru-RU Pro собран В ПЕСОЧНИЦЕ и уложен чанками в репу — Хозяину останется ТОЛЬКО скачать/склеить и залить Rufus'ом MBR
+- Склад чанков работает: кит + ISO + chunk_tool живут в репе; песочницу можно терять в любой момент — «ОТТУДА ПОДТЯГИВАЙ ПО МЕРЕ НАДОБНОСТИ»
+- Станция НЕ тронута (ТОХТА); кит v1 ждёт на станции в любое удобное время как альтернативный путь (WU-ссылки в нём живы до 06:47 UTC 25.10, дальше лист перегенерировать)
+- Грабли задокументированы в рабочих логах; Этап A (бейзлайн кролика) остаётся на Хозяине
+
+- ФИНАЛ B1: ISO 26100.1_PROFESSIONAL_X64_RU-RU.ISO (26H2 26300.9807 ru-RU Pro) — 4 292 098 048 байт, SHA256 f08f504ee044e83942b79660b773021ebadf66b3d45195f2156237a2a771e1c0 (3 независимых подтверждения: генерация, сумма ассетов, склейка из блобов)
+- Склад: GitHub Release william-b1-iso-26300.9807 (id 423072681) — 4 ассета по ~1GB (iso.part00..03.iso, хэши совпали байт-в-байт) + SHA256SUMS_ISO.txt; git-склад чанков 40MiB — блобы в ветках iso_tmp_1..5 + MANIFEST.json в artifacts/iso_26100.1_pro_ru/
+- Верификация: isoinfo — Volume 26100.1_X64_RU-RU, El Torito Validation OK (Hid 1, Key 55AA, checksum 0), BIOS entry bootable Nsect 8 LBA 2255 (etfsboot), EFI entry bootable Nsect 2880 LBA 1535 (efisys); VERIFICATION.txt в репе
+- Грабли финализации: git push 4.2GB рвётся сетью (~11 мин лимит) -> партионные пуши tmp-веток (5x21 блоб); PATCH /git/refs 500 на деревьях с блобами 40MB -> маленькие деревья через PATCH работают; Contents API PUT >1MB не проходит
+- Канон обновлён: MISSION_WILLIAM.md (раздел III-a «ИСПОЛНЕНИЕ B1»), worklog, VERIFICATION.txt
