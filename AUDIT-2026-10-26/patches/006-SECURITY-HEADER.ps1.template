@@ -1,0 +1,25 @@
+﻿# =====================================================================
+# SECURITY HEADER - обязательная шапка для всех новых .ps1 кита PHOENIX
+# (AUDIT 2026-10-26; паттерн PSScriptAnalyzer / WinUtil / Atlas-стиль)
+# =====================================================================
+#Requires -Version 5.1
+#Requires -RunAsAdministrator
+[CmdletBinding()]
+param(
+  # все внешние входы - ТОЛЬКО через param с ValidateSet
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'   # в критичных секциях локально 'Continue'
+$ProgressPreference    = 'SilentlyContinue'
+
+# Запрет опасных паттернов (grep-gate в CI):
+#   Invoke-Expression / iex     - ЗАПРЕЩЕНО (AUDIT S-06)
+#   DownloadString/DownloadFile - ЗАПРЕЩЕНО (Invoke-WebRequest -UseBasicParsing)
+#   бинарник без SHA256         - ЗАПРЕЩЕНО (Law 4 распространяется на арсенал)
+function Assert-FileHash {
+  param([string]$Path, [string]$ExpectedSha256)
+  $h = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
+  if ($h -ne $ExpectedSha256.ToLower()) {
+    throw "SHA256 mismatch: $Path - файл не проходит верификацию (Law 4)"
+  }
+}

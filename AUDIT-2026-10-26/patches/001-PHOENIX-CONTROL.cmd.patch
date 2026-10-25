@@ -1,0 +1,51 @@
+--- orig/PHOENIX-CONTROL.cmd	2026-10-25 17:41:49.432244322 +0000
++++ fixed/PHOENIX-CONTROL.cmd	2026-10-25 17:41:49.432244322 +0000
+@@ -50,42 +50,42 @@
+ goto MENU
+ 
+ :REPORT
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile Balanced -Mode Report
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName Balanced -Mode Report
+ echo.
+ echo Done. Log on Desktop: PHX_TWEAKPACK_*.log
+ pause
+ goto MENU
+ 
+ :SAFE
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile Safe -Mode Apply
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName Safe -Mode Apply
+ echo.
+ echo Done. Rollback: menu [7] or PHX_TWEAKBACKUP_*\rollback.ps1
+ pause
+ goto MENU
+ 
+ :BAL
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile Balanced -Mode Apply
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName Balanced -Mode Apply
+ echo.
+ echo Done. Rollback: menu [7] or PHX_TWEAKBACKUP_*\rollback.ps1
+ pause
+ goto MENU
+ 
+ :PERF
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile Performance -Mode Apply
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName Performance -Mode Apply
+ echo.
+ echo Done. Rollback: menu [7] or PHX_TWEAKBACKUP_*\rollback.ps1
+ pause
+ goto MENU
+ 
+ :PRIV
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile PrivacyMax -Mode Apply
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName PrivacyMax -Mode Apply
+ echo.
+ echo Done. Rollback: menu [7] or PHX_TWEAKBACKUP_*\rollback.ps1
+ pause
+ goto MENU
+ 
+ :RESTORE
+-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -Profile Balanced -Mode Restore
++powershell -NoProfile -ExecutionPolicy Bypass -File "C:\PHX\bin\PHX-RUN.ps1" -ProfileName Balanced -Mode Restore
+ echo.
+ pause
+ goto MENU

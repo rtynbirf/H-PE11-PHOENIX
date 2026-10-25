@@ -1,0 +1,85 @@
+--- orig/PHX-RUN.ps1	2026-10-25 17:41:49.432244322 +0000
++++ fixed/PHX-RUN.ps1	2026-10-25 17:41:49.432244322 +0000
+@@ -1,11 +1,13 @@
+ ﻿# =====================================================================
+ # H-PE11 // PHX-RUN.ps1 - исполнитель профилей PHX_TWEAKPACK v2.0
+-# Проблема: v2.0 - paste-and-run (профиль/режим заданы в теле скрипта,
+-#           не в param()). Меню должно запускать КОНКРЕТНЫЙ профиль,
+-#           не редактируя файл руками.
+-# Решение: regex-подмена строки шапки во временной копии + Invoke-Expression.
+-#           Тело скрипта не меняется, журнал/логи пишутся как обычно.
+-# ЭВ.1: если файл не найден или подмена не сработала - [--] и стоп.
++# Решение v1.1 (AUDIT 2026-10-26): временный файл + запуск дочерним
++#           powershell.exe -File (Invoke-Expression УБРАН).
++#           Бэкап-каталог фиксируется ЯВНО через переменную шапки:
++#             - Apply/Report -> PHX_TWEAKBACKUP_<ts> на общем рабочем столе
++#             - Restore      -> ПОСЛЕДНИЙ существующий PHX_TWEAKBACKUP_*
++#           (чинит баг: Restore не находил журнал v2.0).
++# ЭВ.1: если файл не найден, подмена не сработала или журнал Restore
++#       не найден - метка [--] и стоп, никаких действий.
+ # =====================================================================
+ param(
+   [ValidateSet('Safe','Balanced','Performance','PrivacyMax','Custom')]
+@@ -24,18 +26,51 @@
+ # Чтение: файл в ките хранится в UTF-8 BOM (PS 5.1 читает корректно)
+ $src = Get-Content -LiteralPath $srcPath -Raw -Encoding UTF8
+ 
+-$profLine = '$PhxProfile = ' + "'" + $ProfileName + "'"
+-$modeLine = '$PhxMode   = ' + "'" + $Mode + "'"
+-
+-$patched = $src -replace '(?m)^\$PhxProfile\s*=.*$', ([regex]::Escape($profLine).Replace('\',''))
+-$patched = $patched -replace '(?m)^\$PhxMode\s*=.*$', ([regex]::Escape($modeLine).Replace('\',''))
++# ---------- Каталог бэкапа/журнала (явно, а не по PSScriptRoot) ----------
++$desk = [Environment]::GetFolderPath('CommonDesktopDirectory')
++if ([string]::IsNullOrWhiteSpace($desk)) { $desk = [Environment]::GetFolderPath('Desktop') }
++if ($Mode -eq 'Restore') {
++  $prev = Get-ChildItem -LiteralPath $desk -Directory -Filter 'PHX_TWEAKBACKUP_*' -ErrorAction SilentlyContinue |
++          Sort-Object Name -Descending | Select-Object -First 1
++  if ($null -eq $prev) {
++    Write-Host "[--] Restore: журнал не найден в $desk (PHX_TWEAKBACKUP_*) - СТОП"
++    exit 1
++  }
++  $bdir = $prev.FullName
++  Write-Host "PHX-RUN: Restore из журнала $bdir"
++} else {
++  $ts = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
++  $bdir = Join-Path $desk ("PHX_TWEAKBACKUP_" + $ts)
++}
+ 
+-# Проверка подмены (ЭВ.1): строка шапки должна реально замениться
+-$check = ($patched -split "`n" | Select-String -Pattern '^\$PhxProfile\s*=' | Select-Object -First 1)
+-if ($check -notmatch [regex]::Escape($ProfileName)) {
+-  Write-Host "[--] подмена профиля не подтвердилась - СТОП (никаких действий)"
++$profLine   = '$PhxProfile   = ' + "'" + $ProfileName + "'"
++$modeLine   = '$PhxMode     = ' + "'" + $Mode + "'"
++$backupLine = '$PhxBackupDir = ' + "'" + $bdir + "'"
++
++$patched = $src -replace '(?m)^\$PhxProfile\s*=.*$', $profLine
++$patched = $patched -replace '(?m)^\$PhxMode\s*=.*$', $modeLine
++$patched = $patched -replace '(?m)^\$PhxBackupDir\s*=.*$', $backupLine
++
++# Проверка подмены (ЭВ.1): все три строки должны реально замениться
++$checkP = ($patched -split "`n" | Select-String -Pattern '^\$PhxProfile\s*=' | Select-Object -First 1)
++$checkM = ($patched -split "`n" | Select-String -Pattern '^\$PhxMode\s*=' | Select-Object -First 1)
++$checkB = ($patched -split "`n" | Select-String -Pattern '^\$PhxBackupDir\s*=' | Select-Object -First 1)
++if (($checkP -notmatch [regex]::Escape($ProfileName)) -or
++    ($checkM -notmatch [regex]::Escape($Mode)) -or
++    ($checkB -notmatch [regex]::Escape($bdir))) {
++  Write-Host "[--] подмена шапки не подтвердилась - СТОП (никаких действий)"
+   exit 1
+ }
+ 
+-Write-Host "PHX-RUN: профиль=$ProfileName режим=$Mode"
+-Invoke-Expression $patched
++# ---------- Запуск: временный файл + дочерний powershell (без IEX) ----------
++$tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('PHX_TWEAKPACK_patched_' + [guid]::NewGuid().ToString('N') + '.ps1')
++try {
++  Set-Content -LiteralPath $tmp -Value $patched -Encoding UTF8
++  Write-Host "PHX-RUN: профиль=$ProfileName режим=$Mode бэкап=$bdir"
++  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tmp
++  $code = $LASTEXITCODE
++  if ($null -eq $code) { $code = 0 }
++  exit $code
++} finally {
++  Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
++}
