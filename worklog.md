@@ -564,3 +564,25 @@ Stage Summary:
 - Верификация: isoinfo — Volume 26100.1_X64_RU-RU, El Torito Validation OK (Hid 1, Key 55AA, checksum 0), BIOS entry bootable Nsect 8 LBA 2255 (etfsboot), EFI entry bootable Nsect 2880 LBA 1535 (efisys); VERIFICATION.txt в репе
 - Грабли финализации: git push 4.2GB рвётся сетью (~11 мин лимит) -> партионные пуши tmp-веток (5x21 блоб); PATCH /git/refs 500 на деревьях с блобами 40MB -> маленькие деревья через PATCH работают; Contents API PUT >1MB не проходит
 - Канон обновлён: MISSION_WILLIAM.md (раздел III-a «ИСПОЛНЕНИЕ B1»), worklog, VERIFICATION.txt
+---
+Task ID: 41
+Agent: main (Z.ai)
+Task: Свежий PAT от Хозяина + приказ «ДЕЛАЙ» (автономно): B2-верификация, ISO v2 turnkey, B5-частично. Чанковая дисциплина подтверждена на практике.
+
+Work Log:
+- Новый PAT проверен (TOKEN_OK rtynbirf); склад цел: ветки iso_tmp_1..5, Release 423072681 (4 части v1), канон main
+- Housekeeping: Task 40 влит в worklog, 17 объектов запушено (worklog + b1-конвейер scripts/b1/ чанками)
+- B2-ВЕРИФИКАЦИЯ: v1 ISO поднят из чанков репы (4.29GB, sha256 f08f504e... совпал) -> 7z UDF-экстракт (1050 файлов) -> wimextract SOFTWARE hive -> chntpw: CurrentBuild=26100, UBR=1, DisplayVersion=24H2 — базис v1 = 24H2-ядро 26100.1, НЕ 26300! Причина: enablement-природа композиции + convert.sh v0.7.3 line 430 «does not and cannot support the integration of updates». Имя «26100.1_» было буквальным, а не «схемой конвертера» (моя ошибка рационализации в Task 40)
+- КОРРЕКЦИЯ: в композиции найден Windows11.0-KB5121794-x64.cab (enablement-флип 26100->26300, 26KB, sha1 edc390e7... сверён с WU); CU KB5127648 (26300.9711) добыт из MS Catalog (MSU 533.8MB; внутри SSU-26100.1738 cab + KB5043080 psf/wim express — сервабельного LCU-cab нет); MEI 11.x кабы распакованы и проверены: DEV_1C3A (6-series) НЕ покрыт
+- Решение ISO v2 TURNKEY: запечь autounattend.xml (bypass x5, ru-RU, 6orman, FirstLogon: твики + async apply_updates.cmd) + WILLIAM/{tweaks.cmd, apply_updates.cmd, README} + UPDATES/{SSU, eKB, CU MSU, README}; цепочка DISM /Online на первом логоне: SSU -> CU(26100.9711) -> eKB(флип 26300); порядок важен (eKB 26100.9544 требует базис >= .9544); psf-express может быть отвергнут DISM -> WU докатит; авторебута нет
+- Грабли обезврежены: __chunk_data (232K мусора стрим-пуша Task 40) найден ВНУТРИ v1 ISO и удалён в v2; api.uupdump UNSUPPORTED_COMBINATION лечится edition=0; FileLocation URL требует unescape &amp;; «genisoimage» в PATH = моя standby-обёртка Task 40 (юзать genisoimage.real); cdrkit не умеет -creation-date; vDSO-монотонное время не фейкается preload'ом (детерминизм genisoimage отброшен); dd без skip_bytes
+- СБОРКА v2: параллельный стрим-пуш (bench: 8 потоков 14.5, 16 потоков 22.9 MiB/s) — genisoimage.real | 14 воркеров POST, backpressure tmp-чанками (макс 10 на диске); 4 825 690 112 B, 116 чанков, sha256 b02e6dba..., COMMIT_OK 12f2f71669 (ref PATCH прошёл сразу)
+- ВЕРИФИКАЦИЯ v2: roundtrip pull из репы (sha256 совпал); isoinfo PVD/Volume; El Torito 2 bootable записи (BIOS etfsboot LBA2265 + UEFI efisys LBA1545); isovfy No errors; UDF-листинг (autounattend + WILLIAM/UPDATES на месте, __chunk_data нет); байт-сверка запечённых файлов OK
+- RELEASE v2: william-b1-iso-v2-turnkey (id 423108931) — 5 ассетов ~920MiB (все HTTP 201) + SHA256SUMS_ISO_v2.txt; TOTAL sha256 совпал
+- B5 частично: chipset 6-series LPC + Realtek RTL8168/8111 кабы добыты (artifacts/william_drivers_partial/); iGPU 9.17.10.4459 в Catalog отсутствует (источник — WU на станции); VIA VT1708S в WU нет (inbox HDAudio закрывает)
+- Канон: MISSION_WILLIAM.md III-b; VERIFICATION_v2.txt -> artifacts/iso_26100.1_pro_ru_v2/; скрипты b2_*, fake_time, drv_* в репу; Этап A помечен ОТЛОЖЕННЫМ
+
+Stage Summary:
+- ISO v2 TURNKEY ГОТОВ И УЛОЖЕН ДВУМЯ ПУТЯМИ: git-чанки (artifacts/iso_26100.1_pro_ru_v2/) + Release (путь кролика: скачать 5 частей, склеить, Rufus MBR+NTFS, загрузиться — дальше ВСЁ само)
+- B1 v2 + B2 ЗАВЕРШЕНЫ; B3 решён как no-cut (serviceability); B4 запечён; B5 частично (2/6 компонентов); B6 в ките/v2; B7 конвейер отработан; B8 верифицирован
+- Чанковая дисциплина Хозяина подтверждена практикой: песочницу можно терять в любой момент
