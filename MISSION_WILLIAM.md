@@ -49,7 +49,23 @@
   4) uupdump кеширует протухшие WU-ссылки (403) → монитор ждёт P1 > now+600с;
   5) PATCH /git/refs возвращает 500 на ходу → финализация нативным git push.
 - **Восстановление после чистки песочницы**: `python3 chunk_tool.py pull MANIFEST.json DEST` — склейка с проверкой sha256. Кит B1 (для запуска на станции) тоже в репе: `artifacts/WILLIAM_B1_KIT_v1/`.
-- **B2 (CU 26300.9711+)**: снят с блокировки B1 — интеграция CU планируется на стороне станции (DISM/Add-Package из кита) либо отдельным прогоном с wine/PSFx64Integrator; базис 9807 свежее 9457 из разведки.
+- **B2 (CU 26300.9711+)**: ВЫПОЛНЕН ИНАЧЕ, чем планировался — не на станции, а запеканием в ISO v2 (см. III-b).
+
+## III-b. ВЕРИФИКАЦИЯ B2 + ISO v2 TURNKEY (2026-10-25, Task 41)
+
+> Приказ: «внуки-собаки-жена — всё на твоей совести; репу чанки мелкие режь, потом
+> оттуда подтягивай». Исполнено: v1 ISO поднят из чанков репы (4.29 GB байт-в-байт),
+> разобран, пересобран в turnkey и уложен обратно чанками + Release.
+
+- **B2-верификация вскрыла правду**: install.wim в v1 = базис **26100.1 (UBR=1, DisplayVersion 24H2)** — НЕ 26300. Природа enablement: UUP-композиция 26H2 несёт общее ядро 26100 ESD, а 26300-специфику дают пакеты. Unix-конвертер интеграцию не умеет (convert.sh v0.7.3: "does not and cannot support the integration of updates"). Урок: проверять СОДЕРЖИМОЕ (hive через wimextract+chntpw), не только структуру.
+- **Решение — turnkey v2**: в ISO запечены autounattend.xml (bypass×5 через LabConfig, ru-RU, учётка 6orman) + WILLIAM/tweaks.cmd + **apply_updates.cmd** — цепочка 26H2 выполняется системой сама на первом логоне (DISM /Online, async, лог C:\WILLIAM\updates.log): 1) SSU-26100.1738 → 2) CU KB5127648 → 26100.9711 → 3) eKB KB5121794 → флип 26300 = 26H2. Порядок важен: eKB (26100.9544) требует базис ≥ .9544 — потому CU раньше eKB. CU внутри express psf — DISM может отказаться; тогда WU докатит (try-log-continue, авторебута нет).
+- **Добыча пакетов**: eKB — из UUP-композиции (api.uupdump get.php `edition=0`, JSON c FileLocation; sha1 edc390e7... сверён); SSU+CU — из Catalog (KB5127648 MSU 533.8MB; внутри SSU-26100.1738 cab + KB5043080 psf/wim express — сервабельного LCU-cab Catalog не даёт).
+- **ISO v2 собран и сложен**: 4 825 690 112 B, 116 чанков × 40MiB, sha256 `b02e6dba...`; commit 12f2f71669; **Release william-b1-iso-v2-turnkey (id 423108931): 5 ассетов + SHA256SUMS** — путь кролика. Верификация: PVD, El Torito ×2 (BIOS LBA2265 + UEFI LBA1545), isovfy clean, UDF-листинг, байт-сверка запечённых файлов, roundtrip репы. Полный отчёт: artifacts/iso_26100.1_pro_ru_v2/VERIFICATION.txt.
+- **Технологии Task 41**: LD_PRELOAD fake-time/гетпид-библиотека (детерминизм genisoimage всё равно недостижим — vDSO монотонное время; отброшено); **параллельный стрим-пуш** (14 воркеров, агрегат 22.9 MiB/s против 4.5 последовательного; 4.85 GB за минуты; backpressure tmp-чанками на диске); финализация деревом через API (ref PATCH прошёл, mktree --missing — запасной путь).
+- **Грабли (свои, не мастеров)**: `__chunk_data` (232K мусора стрим-пуша Task 40 внутри v1 — удалён в v2); `&amp;` в FileLocation-URL (aria2 22 без unescape); «genisoimage» в PATH = моя standby-обёртка Task 40 (реальный — genisoimage.real); `dd` без skip_bytes; Contents API не берёт >1MB (кабы — через Git Data API).
+- **B5 (драйверы H61) — частично**: chipset 6-series LPC (WU cab 60KB) + Realtek RTL8168/8111 (WU cab 0.22MB) — добыты, в репе artifacts/william_drivers_partial/. iGPU HD 2000 9.17.10.4459 в Catalog НЕ представлен (источник — WU на станции, драйвер уже стоит на 26H1); MEI для 6-series в WU нет (11.x не покрывает DEV_1C3A — проверено распаковкой 5 кабов); VIA VT1708S в WU нет (inbox HDAudio закрывает звук). Добор — отдельным прогоном/на станции.
+- **Этап A (baseline кролика) — ОТЛОЖЕН**: у Хозяина нет времени, не форсировать; миссия строится так, чтобы станция была нужна только для финальной установки.
+- **Чанковая дисциплина — работает**: v1 поднята из репы после чистки песочницы; v2 уложена и поднята; скрипты конвейера (b1_*, b2_*, chunk_tool) хранятся в репе scripts/.
 
 ## IV. ГРАНИЦЫ
 
