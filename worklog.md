@@ -678,3 +678,22 @@ Stage Summary:
 - Релиз phx-hub-v1.1 создан (4 ассета, Law 4 в теле); коммиты main: PHX-HUB/PHX-HUB.ps1 + PHX-HUB/README-RU.txt; релиз phx-hub-v1.0 не тронут (Law 2)
 - ЭВ.1: статика 0 ошибок [x], XAML-валидность [x], замыкания Tag [x]; живой прогон на станции - за Хозяином (ИМПОРТ И ПРИМЕНИТЬ -> PHX-HUB-PROFILE-OPTIMAL.json)
 
+---
+Task ID: TH-RECOVERY-39
+Agent: main (Z.ai)
+Task: Приказ Хозяина «иди в сеть, ищи тренды лучших практик мира, делай эмерджентное» - наращивание профильного движка: плейбуки TweakHub 1.5.0 исполняются НАШИМ движком без установленного TweakHub (v1.2)
+
+Work Log:
+- Веб-разведка трендов 2025-2026 (Win11Debloat/WinUtil/privacy.sexy/AtlasOS, release health 26H2): точка восстановления перед профилем, per-step reg export, аудит-журнал, dry-run/предпросмотр - подтверждены мировой практикой; SysMain/Prefetch на HDD признаны ПОЛЕЗНЫМИ (Solidigm) - HDD-конституция верна
+- Реверс открытых исходников TweakHub 1.5.0 (src/Services/TweakService.cs): builtin-каталог экстрактирован (scripts/phx_th_builtin_extract.py) -> 22 slug'а с точными reg-значениями (композитные пресеты TelemetryPolicies/ConsumerContentPolicies/WindowsAiPolicies/BingSearchPolicies и др.); C#-константы развернуты, строковые литералы -> REG_SZ, -1 -> 4294967295
+- Движок v1.2: Import-PhxExternalProfile (два формата: TweakHub Version=1 Type 0/2 + PHX ver/tweaks/appx/services), Test-PhxConstitution (5 правил HDD-конституции: отключение дефрагментации, SysMain/Superfetch/Prefetcher=0, DisableDeleteNotify=1, кэш записи, disk timeout>0), Invoke-PhxExtStep/Invoke-PhxExtProfile (DRY-RUN = ноль записей; прогон = OpGroup + extrun в журнал с SHA256), откат прогона Invoke-PhxUndoAll -OnlyGroup
+- UI: панель ПРОФИЛИ + 5 кнопок (Импорт плейбука / Шаги / DRY-RUN / ПРИМЕНИТЬ ПРОФИЛЬ / Откат прогона) + txtExtLog; About-панель дополнена историей v1.2
+- Верификация (pwsh 7.4.6, scripts/phx_v11_test.ps1): 44/44 PASS - парс PS1 0 ошибок, XAML XML-валиден, TUNING 43/43 (22 builtin + 21 custom, NetworkThrottlingIndex -1 -> 4294967295), MAINT 4 script OK (disk-timeout-ac 0 НЕ блокируется), PHX-профиль 43/43, DRY-RUN стерилен, страж 6/6 БЛОК + 2/2 разрешений
+- Сборка: PHX-HUB.ps1 v1.2 152 721 Б (BOM+CRLF), лаунчер CP866 907 Б, README-RU.txt 7 448 Б
+
+Stage Summary:
+- PHX-HUB.ps1 v1.2: 152 721 Б, SHA256 7a7009db6108bee173646b70b26191d93332d3cc101b3290e42e9f9acf9818c5
+- PHX-HUB-v1.2.zip: 41 128 Б, SHA256 2cefe98c0f704069a04656497bdbbd6b70f4f2679c15747911d2b21884fc35a4
+- README-RU.txt v1.2: 7 448 Б, SHA256 ce1b96b155cb341843d451f4a04da2f0e006c84f0f73e3eb950e0b1ab3a1c133
+- Релиз phx-hub-v1.2 создан (НОВЫЙ тег; v1.0/v1.1 не тронуты - Law 2); ALGORITHM.md §2/§3/§6/§7 -> v1.2
+- ЭВ.1: статика 44/44 PASS [x]; живой прогон на станции - за Хозяином: ПРОФИЛИ -> Импорт плейбука -> TUNING -> DRY-RUN -> ПРИМЕНИТЬ ПРОФИЛЬ
