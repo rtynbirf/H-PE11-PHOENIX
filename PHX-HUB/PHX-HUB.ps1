@@ -24,7 +24,7 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
-$script:PhxVersion = '1.0'
+$script:PhxVersion = '1.1'
 
 # --- Элевация (практика O&O ShutUp10: самоподъём через UAC)
 $wid  = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -691,6 +691,210 @@ $script:Playbooks = @(
 )
 
 # ============================================================
+#  v1.1: ПРОФИЛЬНЫЙ ДВИЖОК (TweakHub-стиль, наш)
+#  Профиль JSON: ver 1.0/1.1 { name, tweaks[], appx[], services:[{name,start}] }
+#  Каталог внешних профилей: %ProgramData%\PHX-HUB\profiles
+# ============================================================
+
+$script:ProfileDir = Join-Path $env:ProgramData 'PHX-HUB\profiles'
+try { if (-not (Test-Path $script:ProfileDir)) { New-Item -Path $script:ProfileDir -ItemType Directory -Force | Out-Null } } catch {}
+
+function Test-PhxProfile {
+    param([string]$Path)
+    $warn = New-Object System.Collections.ArrayList
+    try {
+        $raw = Get-Content -Path $Path -Encoding UTF8 -Raw
+        $j = $raw | ConvertFrom-Json
+    } catch {
+        return @{ Ok=$false; Err=('JSON не читается: ' + $_.Exception.Message); Warn=@(); Profile=$null }
+    }
+    $ver = [string]$j.ver
+    if ($ver -ne '' -and $ver -ne '1.0' -and $ver -ne '1.1') { [void]$warn.Add(('версия профиля ' + $ver + ' - читаю как 1.1')) }
+    $name = [string]$j.name
+    if ($name -eq '') { $name = [IO.Path]::GetFileNameWithoutExtension($Path) }
+
+    $tws = @(); $aps = @(); $svs = @()
+    foreach ($id in @($j.tweaks)) {
+        $s = [string]$id
+        if ($s -eq '') { continue }
+        $known = ($script:Tweaks | Where-Object { $_.Id -eq $s } | Select-Object -First 1)
+        if ($null -eq $known) { [void]$warn.Add(('твик в каталоге не найден: ' + $s)) } else { $tws += $s }
+    }
+    foreach ($nm in @($j.appx)) {
+        $s = [string]$nm
+        if ($s -ne '') { $aps += $s }
+    }
+    if ($null -ne $j.services) {
+        foreach ($sv in @($j.services)) {
+            $sn = [string]$sv.name; $ss = [string]$sv.start
+            $known = ($script:SvcPreset | Where-Object { $_.n -eq $sn } | Select-Object -First 1)
+            if ($null -eq $known) { [void]$warn.Add(('служба вне безопасного списка: ' + $sn)); continue }
+            if ($ss -ne 'Automatic' -and $ss -ne 'Manual' -and $ss -ne 'Disabled') { [void]$warn.Add(('служба ' + $sn + ': тип ' + $ss + ' запрещён')); continue }
+            $svs += @{ Name=$sn; Start=$ss }
+        }
+    }
+    if ($tws.Count -eq 0 -and $aps.Count -eq 0 -and $svs.Count -eq 0) {
+        return @{ Ok=$false; Err='в профиле нет ни одного известного действия'; Warn=@($warn); Profile=$null }
+    }
+    return @{ Ok=$true; Err=$null; Warn=@($warn); Profile=@{ Name=$name; Tweaks=@($tws); Apps=@($aps); Services=@($svs) } }
+}
+
+# verify одного значения реестра (DWord сравнивается по байтам - урок 0xFFFFFFFF)
+function Test-PhxRegValue {
+    param([string]$Path,[string]$Name,$Expected,[string]$Type)
+    try {
+        if (-not (Test-Path $Path)) { return $false }
+        $cur = $null
+        if ($Name -eq '(Default)') { $cur = (Get-Item -Path $Path -ErrorAction Stop).GetValue('') }
+        else { $cur = (Get-ItemProperty -Path $Path -Name $Name -ErrorAction Stop).$Name }
+        if ($Type -eq 'DWord' -or $Type -eq 'QWord') {
+            $cb = [BitConverter]::GetBytes([long]$cur)
+            $eb = [BitConverter]::GetBytes([long]$Expected)
+            if ($Type -eq 'DWord') { return ([BitConverter]::ToUInt32($cb,0) -eq [BitConverter]::ToUInt32($eb,0)) }
+            return ([BitConverter]::ToUInt64($cb,0) -eq [BitConverter]::ToUInt64($eb,0))
+        }
+        return ([string]$cur -eq [string]$Expected)
+    } catch { return $false }
+}
+
+function Test-PhxActState {
+    param($Act)
+    switch ([string]$Act.k) {
+        'reg' { return (Test-PhxRegValue -Path $Act.p -Name $Act.n -Expected $Act.v -Type ([string]$Act.t)) }
+        'svc' { try { return ([string](Get-Service -Name $Act.n -ErrorAction Stop).StartType -eq [string]$Act.s) } catch { return $false } }
+        default { return $null }
+    }
+}
+
+# ПОЛНЫЙ КОНВЕЙЕР: подтверждение -> точка восстановления -> применение -> verify -> сводка
+function Invoke-PhxProfileRun {
+    param($Profile)
+    $nT = @($Profile.Tweaks).Count; $nA = @($Profile.Apps).Count; $nS = @($Profile.Services).Count
+    $r = Show-PhxMsg -Text ('Профиль "{0}": твиков {1}, приложений {2}, служб {3}.' + [Environment]::NewLine + [Environment]::NewLine + 'Применить? Каждая запись реестра - с автоматическим бэкапом, всё попадёт в журнал с возможностью отката.' -f $Profile.Name, $nT, $nA, $nS) -Title 'PHX-HUB: профиль' -Icon Warning -Question $true
+    if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return $null }
+    $rp = Show-PhxMsg -Text 'Создать точку восстановления перед профилем?' -Title 'PHX-HUB' -Question $true
+    New-PhxOpGroup
+    if ($rp -eq [System.Windows.MessageBoxResult]::Yes) {
+        Set-Status 'Создание точки восстановления...'
+        [void](New-PhxRestorePoint)
+    }
+    $st = @{ Applied=0; Failed=0; Chk=0; ChkOk=0; Missed=(New-Object System.Collections.ArrayList) }
+    foreach ($tid in @($Profile.Tweaks)) {
+        $t = $script:Tweaks | Where-Object { $_.Id -eq $tid } | Select-Object -First 1
+        if ($null -eq $t) { continue }
+        Set-Status ('Профиль {0}: {1}...' -f $Profile.Name, $t.Name)
+        try {
+            Invoke-PhxTweak -Tweak $t; $st.Applied++
+            foreach ($a in $t.Acts) {
+                $v = Test-PhxActState -Act $a
+                if ($null -ne $v) {
+                    $st.Chk++
+                    if ($v) { $st.ChkOk++ } else { [void]$st.Missed.Add($t.Name) }
+                }
+            }
+        } catch {
+            $st.Failed++
+            Write-PhxLog ('PB FAIL ' + $tid + ': ' + $_.Exception.Message)
+            [void]$st.Missed.Add(($t.Name + ' [ошибка]'))
+        }
+    }
+    foreach ($an in @($Profile.Apps)) {
+        Set-Status ('Профиль {0}: удаление {1}...' -f $Profile.Name, $an)
+        try {
+            [void](Remove-PhxAppx -PkgName $an); $st.Applied++
+            $st.Chk++
+            if ($null -eq (Get-AppxPackage -Name $an -ErrorAction SilentlyContinue)) { $st.ChkOk++ } else { [void]$st.Missed.Add(('Appx: ' + $an)) }
+        } catch {
+            $st.Failed++
+            [void]$st.Missed.Add(('Appx: ' + $an + ' [ошибка]'))
+        }
+    }
+    foreach ($sv in @($Profile.Services)) {
+        Set-Status ('Профиль {0}: служба {1} -> {2}...' -f $Profile.Name, $sv.Name, $sv.Start)
+        try {
+            Set-PhxService -Name $sv.Name -StartType $sv.Start; $st.Applied++
+            $st.Chk++
+            $cur = [string](Get-Service -Name $sv.Name -ErrorAction Stop).StartType
+            if ($cur -eq $sv.Start) { $st.ChkOk++ } else { [void]$st.Missed.Add(('Служба ' + $sv.Name + ': стало ' + $cur)) }
+        } catch {
+            $st.Failed++
+            [void]$st.Missed.Add(('Служба ' + $sv.Name + ' [ошибка]'))
+        }
+    }
+    $missTxt = ''
+    if ($st.Missed.Count -gt 0) {
+        $head = @($st.Missed | Select-Object -First 6)
+        $missTxt = [Environment]::NewLine + [Environment]::NewLine + ('Не совпало ({0}):' -f $st.Missed.Count) + [Environment]::NewLine + '- ' + ($head -join ([Environment]::NewLine + '- '))
+        if ($st.Missed.Count -gt 6) { $missTxt += ([Environment]::NewLine + '- ...') }
+    }
+    Show-PhxMsg ('Профиль "{0}" применён.' + [Environment]::NewLine + [Environment]::NewLine + ('Операций: {0} (ошибок: {1}).' -f $st.Applied, $st.Failed) + [Environment]::NewLine + ('Проверка (verify): {0} из {1} совпало.' -f $st.ChkOk, $st.Chk) + $missTxt) -Title 'PHX-HUB: профиль применён'
+    Write-PhxLog ('PROFILE RUN: ' + $Profile.Name + ' applied=' + $st.Applied + ' failed=' + $st.Failed + ' verify=' + $st.ChkOk + '/' + $st.Chk)
+    Add-PhxJournal -Entry @{ kind='profile'; name=$Profile.Name; applied=[string]$st.Applied; failed=[string]$st.Failed; verify=('{0}/{1}' -f $st.ChkOk, $st.Chk) }
+    Set-Status 'Готово.'
+    return $st
+}
+
+# карточки внешних профилей из каталога (после встроенных)
+function Add-PhxExternalProfileCards {
+    if (-not (Test-Path $script:ProfileDir)) { return }
+    $files = @(Get-ChildItem -Path $script:ProfileDir -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object Name)
+    if ($files.Count -eq 0) {
+        $hint = New-PhxTxt -Text ('Внешних профилей нет. Положи JSON в каталог: {0} и нажми "Обновить каталог".' -f $script:ProfileDir) -Color '#5A6070' -Size 11
+        $hint.Margin = '0,10,0,2'
+        [void]$ui.spPlaybooks.Children.Add($hint)
+        return
+    }
+    $hdr = New-PhxTxt -Text ('ВНЕШНИЕ ПРОФИЛИ (каталог: {0})' -f $script:ProfileDir) -Color '#5A6070' -Size 11
+    $hdr.Margin = '0,10,0,2'
+    [void]$ui.spPlaybooks.Children.Add($hdr)
+    foreach ($f in $files) {
+        $pr = Test-PhxProfile -Path $f.FullName
+        if (-not $pr.Ok) { continue }
+        $p = $pr.Profile
+        $card = New-PhxCard
+        $grid = New-Object System.Windows.Controls.Grid
+        $g1 = New-Object System.Windows.Controls.ColumnDefinition; $g1.Width = (New-Object System.Windows.GridLength(1,'Star'))
+        $g2 = New-Object System.Windows.Controls.ColumnDefinition; $g2.Width = [System.Windows.GridLength]::Auto
+        $g3 = New-Object System.Windows.Controls.ColumnDefinition; $g3.Width = [System.Windows.GridLength]::Auto
+        [void]$grid.ColumnDefinitions.Add($g1); [void]$grid.ColumnDefinitions.Add($g2); [void]$grid.ColumnDefinitions.Add($g3)
+        $sp = New-Object System.Windows.Controls.StackPanel
+        [void]$sp.Children.Add((New-PhxTxt -Text $p.Name -Color '#FF7A2F' -Bold $true -Size 14.5 -Wrap $false))
+        [void]$sp.Children.Add((New-PhxTxt -Text ('твиков {0}, приложений {1}, служб {2}  -  файл: {3}' -f @($p.Tweaks).Count, @($p.Apps).Count, @($p.Services).Count, $f.Name) -Color '#8B90A0' -Size 11.5))
+        $sp.Margin = '0,0,8,0'
+        [void]$grid.Children.Add($sp)
+        [System.Windows.Controls.Grid]::SetColumn($sp,0)
+        $btn = New-Object System.Windows.Controls.Button
+        $btn.Content = 'ПРИМЕНИТЬ'
+        $btn.Style = $win.FindResource('PhxBtnFire')
+        $btn.VerticalAlignment = 'Center'
+        $btn.Tag = $p
+        $btn.Add_Click({
+            $p = $this.Tag
+            $pp = @{ Name = $p.Name; Tweaks = @($p.Tweaks); Apps = @($p.Apps); Services = @($p.Services) }
+            $null = Invoke-PhxProfileRun -Profile $pp
+        })
+        [void]$grid.Children.Add($btn)
+        [System.Windows.Controls.Grid]::SetColumn($btn,1)
+        $bdel = New-Object System.Windows.Controls.Button
+        $bdel.Content = 'УДАЛИТЬ'
+        $bdel.Style = $win.FindResource('PhxBtn')
+        $bdel.VerticalAlignment = 'Center'
+        $bdel.Margin = '6,0,0,0'
+        $bdel.Tag = $f.FullName
+        $bdel.Add_Click({
+            $fp = $this.Tag
+            $r = Show-PhxMsg -Text ('Удалить файл профиля из каталога?' + [Environment]::NewLine + $fp) -Title 'PHX-HUB: каталог' -Icon Warning -Question $true
+            if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return }
+            try { Remove-Item -Path $fp -Force; Build-PlaybookList } catch { Show-PhxMsg ('Не удалось: ' + $_.Exception.Message) -Icon Error }
+        })
+        [void]$grid.Children.Add($bdel)
+        [System.Windows.Controls.Grid]::SetColumn($bdel,2)
+        $card.Child = $grid
+        [void]$ui.spPlaybooks.Children.Add($card)
+    }
+}
+
+# ============================================================
 #  СБОРЩИКИ ДАННЫХ
 # ============================================================
 
@@ -808,7 +1012,7 @@ function Get-PhxJournalView {
 $script:Xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PHX-HUB :: PHOENIX Control Center"
+        Title="PHX-HUB v1.1 :: PHOENIX Control Center"
         Height="780" Width="1260" MinHeight="640" MinWidth="1020"
         WindowStartupLocation="CenterScreen"
         Background="#0F1117" FontFamily="Segoe UI" FontSize="13"
@@ -1017,22 +1221,37 @@ $script:Xaml = @'
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
-          <Grid Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-              <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Профили одним кликом + перенос конфигурации на флешке (JSON)."
-                       Foreground="#8B90A0" VerticalAlignment="Center" FontSize="11.5"/>
-            <Button x:Name="btnPlayExport" Grid.Column="1" Style="{StaticResource PhxBtn}" Content="Экспорт профиля" Margin="8,0,0,0"/>
-            <Button x:Name="btnPlayImport" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="Импорт профиля" Margin="8,0,0,0"/>
-          </Grid>
+          <StackPanel Margin="0,0,0,8">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="Профили одним кликом + перенос конфигурации на флешке (JSON)."
+                         Foreground="#8B90A0" VerticalAlignment="Center" FontSize="11.5"/>
+              <Button x:Name="btnPlayExport" Grid.Column="1" Style="{StaticResource PhxBtn}" Content="Экспорт профиля" Margin="8,0,0,0"/>
+              <Button x:Name="btnPlayImport" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="Импорт (галочки)" Margin="8,0,0,0"/>
+            </Grid>
+            <Grid Margin="0,6,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="v1.1: импорт с ПРИМЕНЕНИЕМ + каталог внешних профилей + verify."
+                         Foreground="#5A6070" VerticalAlignment="Center" FontSize="11"/>
+              <Button x:Name="btnPlayApplyFile" Grid.Column="1" Style="{StaticResource PhxBtnFire}" Content="ИМПОРТ И ПРИМЕНИТЬ" Margin="8,0,0,0"/>
+              <Button x:Name="btnPlayCatalog" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="Обновить каталог" Margin="8,0,0,0"/>
+              <Button x:Name="btnPlayFolder" Grid.Column="3" Style="{StaticResource PhxBtn}" Content="Папка профилей" Margin="8,0,0,0"/>
+            </Grid>
+          </StackPanel>
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="spPlaybooks" Margin="0,0,4,0"/>
           </ScrollViewer>
           <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#5A6070" FontSize="11"
-                     Text="Экспорт сохраняет выбранные твики и настройки в JSON - можно применить на другой машине."/>
+                     Text="Экспорт: выбранные твики/приложения в JSON. Импорт (галочки): только отмечает. ИМПОРТ И ПРИМЕНИТЬ: файл применяется целиком (reg-бэкапы, журнал, verify). Каталог профилей: %ProgramData%\PHX-HUB\profiles."/>
         </Grid>
 
         <!-- 4. УСТРОЙСТВА -->
@@ -1233,7 +1452,7 @@ $script:Xaml = @'
               <TextBlock Text="Единый центр управления системой проекта H-PE11 // PHOENIX. Версия 1.0."
                          Foreground="#8B90A0" Margin="0,6,0,16" TextWrapping="Wrap"/>
               <TextBlock Foreground="#C9CBD4" TextWrapping="Wrap" FontSize="12.5" LineHeight="20"
-                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg)."/>
+                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg).&#x0a;&#x0a;v1.1: профильный движок - каталог внешних профилей (ProgramData\PHX-HUB\profiles), импорт профиля с немедленным применением, verify-проход (перечитывание фактических значений после применения), службы в профилях - только из безопасного списка."/>
               <TextBlock Text="PHOENIX WILL RISE." Foreground="#FF7A2F" FontWeight="Bold" Margin="0,16,0,0"/>
             </StackPanel>
           </ScrollViewer>
@@ -1268,7 +1487,7 @@ function Get-UINode { param([string]$Name)
 $ui = @{}
 foreach ($n in @('tbVer','tbSysInfo','tbAdmin','bdAdmin','tbScorePct','spChecks','btnRP','tbSysBig','tbSysSub','tbSysThird',
     'spTweaks','btnSelAll','btnSelNone','btnApply','tbTweakHint',
-    'spPlaybooks','btnPlayExport','btnPlayImport',
+    'spPlaybooks','btnPlayExport','btnPlayImport','btnPlayApplyFile','btnPlayCatalog','btnPlayFolder',
     'lvDevices','btnDevRefresh','btnDevProblems','tbMsi','btnMsiOn','btnMsiOff',
     'lvPlans','btnPlanSet','btnHibOff','btnHibOn','btnFastOff','btnFastOn','btnCpu100','btnCpu5',
     'lvNet','btnDnsCF','btnDnsG','btnDnsQ9','btnDnsAuto','btnFlush','tbNetHint',
@@ -1579,28 +1798,8 @@ function Build-PlaybookList {
         $btn.Tag = $pb
         $btn.Add_Click({
             $p = $this.Tag
-            $r = Show-PhxMsg -Text ('Профиль: {0}. Применить? Всё попадёт в журнал с возможностью отката.' -f $p.Name) -Title 'PHX-HUB: профиль' -Icon Warning -Question $true
-            if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return }
-            $rp = Show-PhxMsg -Text 'Создать точку восстановления перед профилем?' -Title 'PHX-HUB' -Question $true
-            if ($rp -eq [System.Windows.MessageBoxResult]::Yes) {
-                Set-Status 'Создание точки восстановления...'
-                New-PhxOpGroup
-                [void](New-PhxRestorePoint)
-            }
-            New-PhxOpGroup
-            $n = 0
-            foreach ($tid in $p.Tweaks) {
-                $t = $script:Tweaks | Where-Object { $_.Id -eq $tid } | Select-Object -First 1
-                if ($null -eq $t) { continue }
-                Set-Status ('Профиль {0}: {1}...' -f $p.Name, $t.Name)
-                try { Invoke-PhxTweak -Tweak $t; $n++ } catch { Write-PhxLog ('PB FAIL ' + $tid) }
-            }
-            foreach ($an in $p.Apps) {
-                Set-Status ('Профиль {0}: удаление {1}...' -f $p.Name, $an)
-                try { [void](Remove-PhxAppx -PkgName $an); $n++ } catch {}
-            }
-            Show-PhxMsg ('Профиль применён: операций {0}.' -f $n)
-            Set-Status 'Готово.'
+            $pb = @{ Name = $p.Name; Tweaks = @($p.Tweaks); Apps = @($p.Apps); Services = @() }
+            $null = Invoke-PhxProfileRun -Profile $pb
         })
         [void]$grid.Children.Add($btn)
         [System.Windows.Controls.Grid]::SetColumn($btn,1)
@@ -1608,7 +1807,46 @@ function Build-PlaybookList {
         $card.Child = $grid
         [void]$ui.spPlaybooks.Children.Add($card)
     }
+    Add-PhxExternalProfileCards
 }
+
+# ============================================================
+#  v1.1: КНОПКИ ПРОФИЛЬНОГО ДВИЖКА
+# ============================================================
+
+$ui.btnPlayApplyFile.Add_Click({
+    $dlg = New-Object Microsoft.Win32.OpenFileDialog
+    $dlg.Filter = 'JSON профиль (*.json)|*.json'
+    $dlg.Title = 'PHX-HUB v1.1: выбрать профиль для применения'
+    if (-not $dlg.ShowDialog($win)) { return }
+    $pr = Test-PhxProfile -Path $dlg.FileName
+    if (-not $pr.Ok) { Show-PhxMsg ('Профиль НЕ принят: ' + $pr.Err) -Title 'PHX-HUB: ошибка' -Icon Error; return }
+    if ($pr.Warn.Count -gt 0) {
+        Show-PhxMsg ('Замечания по профилю (будут пропущены):' + [Environment]::NewLine + '- ' + ($pr.Warn -join ([Environment]::NewLine + '- '))) -Title 'PHX-HUB: предупреждение' -Icon Warning
+    }
+    $res = Invoke-PhxProfileRun -Profile $pr.Profile
+    if ($null -ne $res) {
+        $r2 = Show-PhxMsg 'Добавить копию профиля в каталог (%ProgramData%\PHX-HUB\profiles), чтобы применять одним кликом?' -Title 'PHX-HUB' -Question $true
+        if ($r2 -eq [System.Windows.MessageBoxResult]::Yes) {
+            try {
+                Copy-Item -Path $dlg.FileName -Destination (Join-Path $script:ProfileDir (Split-Path $dlg.FileName -Leaf)) -Force
+                Build-PlaybookList
+                Show-PhxMsg 'Профиль добавлен в каталог.'
+            } catch { Show-PhxMsg ('Не удалось добавить: ' + $_.Exception.Message) -Icon Error }
+        }
+    }
+})
+
+$ui.btnPlayCatalog.Add_Click({
+    Build-PlaybookList
+    $n = @(Get-ChildItem -Path $script:ProfileDir -Filter '*.json' -ErrorAction SilentlyContinue).Count
+    Set-Status ('Каталог профилей: внешних {0}.' -f $n)
+})
+
+$ui.btnPlayFolder.Add_Click({
+    try { if (-not (Test-Path $script:ProfileDir)) { New-Item -Path $script:ProfileDir -ItemType Directory -Force | Out-Null } } catch {}
+    Start-Process explorer.exe -ArgumentList ('"' + $script:ProfileDir + '"')
+})
 
 $ui.btnPlayExport.Add_Click({
     $selT = @(); $selA = @()
