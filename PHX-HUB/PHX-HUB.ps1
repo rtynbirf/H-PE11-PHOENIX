@@ -1,12 +1,17 @@
 ﻿#requires -Version 5.1
 <#
-  PHX-HUB v1.0  (PHOENIX / H-PE11-PHOENIX project)
+  PHX-HUB v1.2  (PHOENIX / H-PE11-PHOENIX project)
   Единый центр управления системой: твики, профили, устройства, энергия,
   сеть, приложения, службы, журнал с полным откатом.
-  Механизм вдохновлён TweakHub (PrimeBuild-pc) и лучшими мировыми
-  практиками (WinUtil/CTT, Sophia Script, privacy.sexy, O&O ShutUp10++),
-  реализован заново на нативном PowerShell 5.1 + WPF.
-  Ноль внешних зависимостей. Каждый шаг пишется в журнал,
+  v1.2: PHX PROFILE ENGINE - движок внешних профилей по образцу TweakHub
+  1.5.0 (плейбуки Version=1: Steps Tweak/Script, builtin:/custom:,
+  CustomTweaks/CustomScripts), но сильнее: КОНСТИТУЦИЯ-СТРАЖ (шаги, вредные
+  для HDD, блокируются с явной причиной), DRY-RUN (полный прогон без записи),
+  SHA256 профиля в журнале, бэкап реестра перед каждым значением,
+  откат прогона одним кликом. builtin-каталог TweakHub вшит из его
+  открытых исходников. Практики мира: WinUtil/CTT, Sophia Script,
+  privacy.sexy, O&O ShutUp10++. Ноль внешних зависимостей.
+  PowerShell 5.1 + WPF. Каждый шаг пишется в журнал,
   каждый твик реестра заранее экспортируется в резервный .reg.
 #>
 
@@ -24,7 +29,7 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
-$script:PhxVersion = '1.1'
+$script:PhxVersion = '1.2'
 
 # --- Элевация (практика O&O ShutUp10: самоподъём через UAC)
 $wid  = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -573,6 +578,394 @@ function Invoke-PhxTweak {
 }
 
 # ============================================================
+#  PHX PROFILE ENGINE v1.2 (PHOENIX)
+#  Движок внешних профилей: плейбуки TweakHub 1.5.0 (Version=1)
+#  и родные PHX-профили. Против TweakHub - четыре наших:
+#   1) КОНСТИТУЦИЯ-СТРАЖ: шаги, ломающие HDD-конституцию
+#      (отключение дефрагментации, SysMain/Prefetch, TRIM,
+#      кэш записи, отключение диска по питанию) - БЛОКИРУЮТСЯ
+#      с явной причиной, а не исполняются вслепую.
+#   2) DRY-RUN: полный прогон плейбука без единой записи.
+#   3) SHA256 профиля пишется в журнал (Law 4 внутри движка).
+#   4) Бэкап реестра перед КАЖДЫМ значением (Backup-PhxRegKey)
+#      + откат группы одним кликом (Invoke-PhxUndoAll).
+#  builtin-каталог TweakHub 1.5.0 вшит из его открытых исходников
+#  (TweakService.cs): каждый builtin:<slug> -> конкретные значения
+#  реестра. Незнакомый builtin честно SKIP с причиной.
+# ============================================================
+
+$script:ExtProfile   = $null
+$script:LastExtGroup = $null
+
+# ---------- builtin-карта TweakHub 1.5.0 (из открытых исходников) ----------
+$script:BuiltinMap = @{
+  'cpu_priority_separation' = @(
+    @{ p='HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl'; n='Win32PrioritySeparation'; t='DWord'; v=38 }
+  )
+  'disable_telemetry' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; n='AllowTelemetry'; t='DWord'; v=0 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'; n='DoNotShowFeedbackNotifications'; t='DWord'; v=1 }
+    @{ p='HKCU:\Software\Microsoft\Siuf\Rules'; n='NumberOfSIUFInPeriod'; t='DWord'; v=0 }
+    @{ p='HKLM:\SYSTEM\CurrentControlSet\Services\DiagTrack'; n='Start'; t='DWord'; v=4 }
+  )
+  'disable_activity_history' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'; n='EnableActivityFeed'; t='DWord'; v=0 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'; n='PublishUserActivities'; t='DWord'; v=0 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'; n='UploadUserActivities'; t='DWord'; v=0 }
+  )
+  'disable_advertising_id' = @(
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo'; n='Enabled'; t='DWord'; v=0 }
+  )
+  'disable_tailored_experiences' = @(
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy'; n='TailoredExperiencesWithDiagnosticDataEnabled'; t='DWord'; v=0 }
+  )
+  'disable_consumer_content' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; n='DisableWindowsConsumerFeatures'; t='DWord'; v=1 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SilentInstalledAppsEnabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SystemPaneSuggestionsEnabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SoftLandingEnabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SubscribedContent-338388Enabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SubscribedContent-338389Enabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SubscribedContent-353694Enabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; n='SubscribedContent-353696Enabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement'; n='ScoobeSystemSettingEnabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; n='Start_IrisRecommendations'; t='DWord'; v=0 }
+  )
+  'disable_bing_search' = @(
+    @{ p='HKCU:\Software\Policies\Microsoft\Windows\Explorer'; n='DisableSearchBoxSuggestions'; t='DWord'; v=1 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Search'; n='BingSearchEnabled'; t='DWord'; v=0 }
+    @{ p='HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; n='IsDynamicSearchBoxEnabled'; t='DWord'; v=0 }
+  )
+  'disable_fullscreen_optimizations' = @(
+    @{ p='HKCU:\System\GameConfigStore'; n='GameDVR_FSEBehaviorMode'; t='DWord'; v=2 }
+  )
+  'disable_game_bar' = @(
+    @{ p='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR'; n='AppCaptureEnabled'; t='DWord'; v=0 }
+  )
+  'disable_animations' = @(
+    @{ p='HKCU:\Control Panel\Desktop\WindowMetrics'; n='MinAnimate'; t='String'; v='0' }
+  )
+  'disable_transparency' = @(
+    @{ p='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'; n='EnableTransparency'; t='DWord'; v=0 }
+  )
+  'optimize_visual_effects' = @(
+    @{ p='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'; n='VisualFXSetting'; t='DWord'; v=2 }
+  )
+  'reduce_menu_delay' = @(
+    @{ p='HKCU:\Control Panel\Desktop'; n='MenuShowDelay'; t='String'; v='0' }
+  )
+  'disable_startup_delay' = @(
+    @{ p='HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize'; n='StartupDelayInMSec'; t='DWord'; v=0 }
+  )
+  'limit_background_updates' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'; n='DOPercentageMaxBackgroundBandwidth'; t='DWord'; v=30 }
+  )
+  'disable_automatic_driver_updates' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'; n='ExcludeWUDriversInQualityUpdate'; t='DWord'; v=1 }
+  )
+  'disable_device_coinstallers' = @(
+    @{ p='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching'; n='SearchOrderConfig'; t='DWord'; v=0 }
+    @{ p='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Installer'; n='DisableCoInstallers'; t='DWord'; v=1 }
+  )
+  'prevent_device_metadata' = @(
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata'; n='PreventDeviceMetadataFromNetwork'; t='DWord'; v=1 }
+  )
+  'disable_wpbt' = @(
+    @{ p='HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'; n='DisableWpbtExecution'; t='DWord'; v=1 }
+  )
+  'detailed_bsod' = @(
+    @{ p='HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl'; n='DisplayParameters'; t='DWord'; v=1 }
+  )
+  'disable_fast_startup' = @(
+    @{ p='HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power'; n='HiberbootEnabled'; t='DWord'; v=0 }
+  )
+  'disable_windows_ai_policies' = @(
+    @{ p='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; n='SettingsPageVisibility'; t='String'; v='hide:aicomponents' }
+    @{ p='HKLM:\SOFTWARE\Policies\WindowsNotepad'; n='DisableAIFeatures'; t='DWord'; v=1 }
+    @{ p='HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot'; n='TurnOffWindowsCopilot'; t='DWord'; v=1 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; n='DisableAIDataAnalysis'; t='DWord'; v=1 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; n='AllowRecallEnablement'; t='DWord'; v=0 }
+    @{ p='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; n='DisableClickToDo'; t='DWord'; v=1 }
+  )
+}
+
+# ---------- утилиты ----------
+function Get-PhxSha256 {
+    param([string]$Path)
+    try { return (Get-FileHash -Path $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant() } catch { return '' }
+}
+
+function Convert-PhxHivePath {
+    param([string]$Path)
+    $p = $Path -replace '^HKEY_LOCAL_MACHINE', 'HKLM' -replace '^HKEY_CURRENT_USER', 'HKCU' -replace '^HKEY_USERS', 'HKU'
+    if ($p -notmatch ':') { $p = $p -replace '^(HKLM|HKCU|HKU)\\', '$1:\' }
+    return $p
+}
+
+function Convert-PhxRegType {
+    param([string]$T)
+    switch ($T) {
+        'REG_DWORD'     { return 'DWord' }
+        'REG_QWORD'     { return 'QWord' }
+        'REG_SZ'        { return 'String' }
+        'REG_EXPAND_SZ' { return 'ExpandString' }
+        'REG_BINARY'    { return 'Binary' }
+        'REG_MULTI_SZ'  { return 'MultiString' }
+        default         { return $T }
+    }
+}
+
+# ---------- КОНСТИТУЦИЯ-СТРАЖ ----------
+# Возвращает $null если шаг чист, иначе строку-причину блокировки.
+function Test-PhxConstitution {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $null }
+    $t = $Text.ToLowerInvariant()
+
+    # 1) Дефрагментация: отключать НЕЛЬЗЯ (HDD 7200rpm живёт на дефрагментаторе)
+    if ($t -match 'defrag' -and $t -match 'disabl|stop|turn\s*off|\/disable') {
+        return 'HDD-конституция: отключение дефрагментации запрещено (Seagate HDD 7200.12 - дефрагментатор нужен)'
+    }
+
+    # 2) SysMain / Superfetch: НЕ отключать (на HDD помогают)
+    if ($t -match 'sysmain|superfetch' -and $t -match 'disabl|stop|start\s*[=:]\s*4|turn\s*off') {
+        return 'HDD-конституция: SysMain/Superfetch на HDD помогает - отключение запрещено'
+    }
+    if ($t -match 'enable(prefetcher|superfetch|sysmain)[^0-9]*0\b') {
+        return 'HDD-конституция: Prefetch/SysMain на HDD помогает - выключение запрещено'
+    }
+
+    # 3) TRIM: физически не поддерживается диском
+    if ($t -match 'disabledeletenotify\s*[=: ]\s*(1|true|on)\b') {
+        return 'HDD-конституция: TRIM-твики не применять - диск TRIM не поддерживает'
+    }
+
+    # 4) Кэш записи: не трогать
+    if ($t -match 'write\s*cache' -and $t -match 'disabl|turn\s*off|\b0\b') {
+        return 'HDD-конституция: кэш записи диска не трогать'
+    }
+
+    # 5) Диск от питания не отключать
+    if ($t -match 'turnoffharddisk|turn\s*off\s*hard\s*disk') {
+        return 'HDD-конституция: диск от питания не отключать'
+    }
+    $m = [regex]::Match($t, 'disk[-_ ]?timeout[-_ ]?(ac|dc)?\s*[=: ]\s*([1-9][0-9]*)')
+    if ($m.Success) {
+        return ('HDD-конституция: диск от питания не отключать (disk timeout = {0})' -f $m.Groups[2].Value)
+    }
+
+    return $null
+}
+
+# ---------- ИМПОРТ ПРОФИЛЯ ----------
+# Понимает два формата:
+#  A) плейбук TweakHub 1.5.0: { Version:1, Playbook:{ Steps[] }, CustomTweaks[], CustomScripts[] }
+#     Type 0 = Tweak (builtin:<slug> | custom:<id>), Type 2 = Script (PS inline)
+#  B) родной PHX-профиль: { ver, tweaks[], appx[] } (id из каталога PHX-HUB)
+function Import-PhxExternalProfile {
+    param([string]$JsonPath)
+    if (-not (Test-Path $JsonPath)) { throw ('Файл не найден: ' + $JsonPath) }
+    $sha = Get-PhxSha256 -Path $JsonPath
+    $raw = [System.IO.File]::ReadAllText($JsonPath)
+    $j = $raw | ConvertFrom-Json
+    $steps = New-Object System.Collections.ArrayList
+
+    $isTh  = ($null -ne $j.PSObject.Properties['Version'] -and $null -ne $j.PSObject.Properties['Playbook'])
+    $isPhx = ($null -ne $j.PSObject.Properties['tweaks'])
+
+    if ($isTh) {
+        $pb = $j.Playbook
+        $customT = @{}
+        foreach ($c in @($j.CustomTweaks))  { if ($c) { $customT[$c.Id] = $c } }
+        $customS = @{}
+        foreach ($s in @($j.CustomScripts)) { if ($s) { $customS[$s.Id] = $s } }
+
+        foreach ($st in @($pb.Steps)) {
+            $title = [string]$st.Name
+            $kind = 'skip'; $detail = ''; $why = ''; $payload = $null
+            $ref = [string]$st.ReferenceId
+
+            if ($st.Type -eq 0 -and $ref.StartsWith('custom:')) {
+                $cid = $ref.Substring(7)
+                if ($customT.ContainsKey($cid)) {
+                    $c = $customT[$cid]
+                    $rt = Convert-PhxRegType -T ([string]$c.ValueType)
+                    if ($rt -eq 'Binary' -or $rt -eq 'MultiString') {
+                        $why = ('тип значения {0} движком не исполняется' -f $rt)
+                    } else {
+                        $v = $c.Data
+                        if ($rt -eq 'DWord' -or $rt -eq 'QWord') {
+                            $iv = [long]0
+                            if ([long]::TryParse([string]$v, [ref]$iv)) {
+                                if ($iv -lt 0 -and $rt -eq 'DWord') { $iv = $iv + 4294967296 }
+                                $v = $iv
+                            }
+                        }
+                        $payload = @(@{ p=(Convert-PhxHivePath -Path ([string]$c.RegistryPath)); n=[string]$c.RegistryKey; t=$rt; v=$v })
+                        $kind = 'reg'
+                        $detail = ('{0} :: {1} = {2} ({3})' -f $c.RegistryPath, $c.RegistryKey, $c.Data, $c.ValueType)
+                    }
+                } else { $why = 'custom-твик отсутствует в теле плейбука' }
+            }
+            elseif ($st.Type -eq 0 -and $ref.StartsWith('builtin:')) {
+                $slug = $ref.Substring(8)
+                if ($script:BuiltinMap.ContainsKey($slug) -and @($script:BuiltinMap[$slug]).Count -gt 0) {
+                    $kind = 'builtin'
+                    $payload = @($script:BuiltinMap[$slug])
+                    $detail = ('builtin:{0} -> {1} значений реестра' -f $slug, @($script:BuiltinMap[$slug]).Count)
+                } else {
+                    $why = ('builtin-твик "{0}" не в карте движка - исполняется только самим TweakHub' -f $slug)
+                }
+            }
+            elseif ($st.Type -eq 2) {
+                if ($customS.ContainsKey($ref)) {
+                    $sc = $customS[$ref]
+                    if ([int]$sc.Language -eq 0) {
+                        $kind = 'script'
+                        $payload = [string]$sc.Content
+                        $detail = ('PowerShell-скрипт, {0} символов' -f $payload.Length)
+                    } else {
+                        $why = 'скрипт не PowerShell - движком не исполняется'
+                    }
+                } else { $why = 'скрипт отсутствует в теле плейбука' }
+            }
+            elseif ($st.Type -eq 1) {
+                $why = ('winget-шаг ({0}) движком не исполняется' -f [string]$st.WingetId)
+            }
+            else { $why = ('неизвестный тип шага: {0}' -f $st.Type) }
+
+            if ($st.TargetEnabled -eq $false) {
+                $kind = 'skip'; $payload = $null; $why = 'в плейбуке помечен TargetEnabled=false'
+            }
+
+            $status = 'OK'
+            if ($kind -eq 'skip') { $status = 'SKIP' }
+            else {
+                $sig = $title + ' ' + $detail
+                if ($kind -eq 'script') { $sig += ' ' + $payload }
+                else { foreach ($a in $payload) { $sig += (' {0} :: {1} = {2}' -f $a.p, $a.n, $a.v) } }
+                $g = Test-PhxConstitution -Text $sig
+                if ($g) { $status = 'BLOCK'; $why = $g; $payload = $null }
+            }
+            [void]$steps.Add(@{ Idx=($steps.Count + 1); Kind=$kind; Title=$title; Detail=$detail; Status=$status; Reason=$why; Payload=$payload })
+        }
+        return @{ Name=[string]$pb.Name; Desc=[string]$pb.Description; Sha=$sha; Source=(Split-Path $JsonPath -Leaf); Steps=$steps.ToArray() }
+    }
+    elseif ($isPhx) {
+        foreach ($id in @($j.tweaks)) {
+            $t = $script:Tweaks | Where-Object { $_.Id -eq $id } | Select-Object -First 1
+            $kind = 'our'; $detail = ''; $why = ''; $payload = $t
+            $grpName = '?'
+            if ($null -eq $t) {
+                $kind = 'skip'; $payload = $null
+                $why = ('твик "{0}" не найден в каталоге этой версии PHX-HUB' -f $id)
+            } else {
+                $grpName = [string]$t.Group
+                $detail = ('{0}: {1} действий' -f $t.Name, @($t.Acts).Count)
+            }
+            $status = 'OK'; if ($kind -eq 'skip') { $status = 'SKIP' }
+            [void]$steps.Add(@{
+                Idx = ($steps.Count + 1); Kind = $kind
+                Title = ('{0}  [{1}]' -f $id, $grpName); Detail = $detail
+                Status = $status; Reason = $why; Payload = $payload
+            })
+        }
+        foreach ($nm in @($j.appx)) {
+            [void]$steps.Add(@{
+                Idx = ($steps.Count + 1); Kind = 'appx'
+                Title = ('Удалить Store-приложение: {0}' -f $nm)
+                Detail = 'возврат - Microsoft Store'
+                Status = 'OK'; Reason = ''; Payload = [string]$nm
+            })
+        }
+        if ($j.PSObject.Properties['services'] -and $null -ne $j.services) {
+            foreach ($sv in @($j.services)) {
+            if ($null -eq $sv) { continue }
+            $sn = [string]$sv.name; $ss = [string]$sv.start
+            $known = ($script:SvcPreset | Where-Object { $_.n -eq $sn } | Select-Object -First 1)
+            $kind = 'svc'; $why = ''; $payload = @{ Name = $sn; Start = $ss }
+            if ($null -eq $known) {
+                $kind = 'skip'; $payload = $null
+                $why = ('служба вне безопасного списка: {0}' -f $sn)
+            }
+            elseif ($ss -ne 'Automatic' -and $ss -ne 'Manual' -and $ss -ne 'Disabled') {
+                $kind = 'skip'; $payload = $null
+                $why = ('служба {0}: тип {1} запрещён' -f $sn, $ss)
+            }
+            $status = 'OK'
+            if ($kind -eq 'skip') { $status = 'SKIP' }
+            else {
+                $g = Test-PhxConstitution -Text ('службе {0} ставим тип запуска {1}' -f $sn, $ss)
+                if ($g) { $status = 'BLOCK'; $why = $g; $payload = $null }
+            }
+            [void]$steps.Add(@{
+                Idx = ($steps.Count + 1); Kind = $kind
+                Title = ('Служба {0} -> {1}' -f $sn, $ss)
+                Detail = $(if ($known) { [string]$known.d } else { '' })
+                Status = $status; Reason = $why; Payload = $payload
+            })
+            }
+        }
+        return @{ Name=('PHX-профиль: {0}' -f (Split-Path $JsonPath -Leaf)); Desc=('вер={0}, хост={1}' -f $j.ver, $j.host); Sha=$sha; Source=(Split-Path $JsonPath -Leaf); Steps=$steps.ToArray() }
+    }
+    else { throw 'Формат не распознан: это не плейбук TweakHub (Version/Playbook) и не PHX-профиль (tweaks)' }
+}
+
+# ---------- ИСПОЛНЕНИЕ ШАГА ----------
+function Invoke-PhxExtStep {
+    param($Step)
+    switch ($Step.Kind) {
+        'reg' {
+            foreach ($a in @($Step.Payload)) { Set-PhxReg -Path $a.p -Name $a.n -Value $a.v -Type $a.t }
+        }
+        'builtin' {
+            foreach ($a in @($Step.Payload)) { Set-PhxReg -Path $a.p -Name $a.n -Value $a.v -Type $a.t }
+        }
+        'our'  { Invoke-PhxTweak -Tweak $Step.Payload }
+        'appx' { [void](Remove-PhxAppx -PkgName ([string]$Step.Payload)) }
+        'svc'  { Set-PhxService -Name $Step.Payload.Name -StartType $Step.Payload.Start }
+        'script' {
+            Write-PhxLog ('EXT SCRIPT START: ' + $Step.Title)
+            $oldEap = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try { Invoke-Expression -Command $Step.Payload } catch { Write-PhxLog ('EXT SCRIPT ERR: ' + $_.Exception.Message) }
+            $ErrorActionPreference = $oldEap
+            Add-PhxJournal -Entry @{ kind='cmdps'; run='<external playbook script>'; undo=''; desc=('Плейбук: ' + $Step.Title) }
+        }
+    }
+}
+
+# ---------- ПРОГОН ПРОФИЛЯ ----------
+# -Dry: полный прогон БЕЗ единой записи (ни реестр, ни журнал).
+# Реальный прогон: одна группа отката (New-PhxOpGroup), запись 'extrun'
+# в журнал с SHA256 профиля, каждый reg-шаг - с бэкапом (Set-PhxReg).
+function Invoke-PhxExtProfile {
+    param($Prof, [switch]$Dry)
+    New-PhxOpGroup
+    $grp = $script:OpGroup
+    if (-not $Dry) {
+        $script:LastExtGroup = $grp
+        Add-PhxJournal -Entry @{ kind='extrun'; profile=$Prof.Name; sha=$Prof.Sha; steps=@($Prof.Steps).Count }
+    }
+    $ok = 0; $skip = 0; $block = 0; $fail = 0
+    foreach ($st in @($Prof.Steps)) {
+        if ($st.Status -eq 'SKIP')  { $skip++;  continue }
+        if ($st.Status -eq 'BLOCK') { $block++; continue }
+        try {
+            if (-not $Dry) {
+                Set-Status ('Шаг {0}: {1}...' -f $st.Idx, $st.Title)
+                Invoke-PhxExtStep -Step $st
+            }
+            $ok++
+        } catch {
+            $fail++
+            Write-PhxLog ('EXT STEP FAIL: ' + $st.Title + ' :: ' + $_.Exception.Message)
+        }
+    }
+    return [pscustomobject]@{ Ok=$ok; Skip=$skip; Block=$block; Fail=$fail; Group=$grp }
+}
+
+# ============================================================
 #  ТОЧКА ВОССТАНОВЛЕНИЯ (практика O&O: перед массовыми делами)
 # ============================================================
 
@@ -691,7 +1084,7 @@ $script:Playbooks = @(
 )
 
 # ============================================================
-#  v1.1: ПРОФИЛЬНЫЙ ДВИЖОК (TweakHub-стиль, наш)
+#  v1.2: ПРОФИЛЬНЫЙ ДВИЖОК (TweakHub-стиль, наш)
 #  Профиль JSON: ver 1.0/1.1 { name, tweaks[], appx[], services:[{name,start}] }
 #  Каталог внешних профилей: %ProgramData%\PHX-HUB\profiles
 # ============================================================
@@ -1012,7 +1405,7 @@ function Get-PhxJournalView {
 $script:Xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PHX-HUB v1.1 :: PHOENIX Control Center"
+        Title="PHX-HUB v1.2 :: PHOENIX Control Center"
         Height="780" Width="1260" MinHeight="640" MinWidth="1020"
         WindowStartupLocation="CenterScreen"
         Background="#0F1117" FontFamily="Segoe UI" FontSize="13"
@@ -1240,7 +1633,7 @@ $script:Xaml = @'
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <TextBlock Text="v1.1: импорт с ПРИМЕНЕНИЕМ + каталог внешних профилей + verify."
+              <TextBlock Text="v1.2: движок плейбуков TweakHub + Конституция-страж + DRY-RUN + verify."
                          Foreground="#5A6070" VerticalAlignment="Center" FontSize="11"/>
               <Button x:Name="btnPlayApplyFile" Grid.Column="1" Style="{StaticResource PhxBtnFire}" Content="ИМПОРТ И ПРИМЕНИТЬ" Margin="8,0,0,0"/>
               <Button x:Name="btnPlayCatalog" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="Обновить каталог" Margin="8,0,0,0"/>
@@ -1250,8 +1643,29 @@ $script:Xaml = @'
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="spPlaybooks" Margin="0,0,4,0"/>
           </ScrollViewer>
-          <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#5A6070" FontSize="11"
-                     Text="Экспорт: выбранные твики/приложения в JSON. Импорт (галочки): только отмечает. ИМПОРТ И ПРИМЕНИТЬ: файл применяется целиком (reg-бэкапы, журнал, verify). Каталог профилей: %ProgramData%\PHX-HUB\profiles."/>
+          <StackPanel Grid.Row="2" Margin="0,8,0,0">
+            <Grid Margin="0,0,0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <Button x:Name="btnExtImport" Grid.Column="0" Style="{StaticResource PhxBtn}" Content="Импорт плейбука" Margin="0,0,6,0"/>
+              <Button x:Name="btnExtShow" Grid.Column="1" Style="{StaticResource PhxBtn}" Content="Шаги" Margin="0,0,6,0"/>
+              <Button x:Name="btnExtDry" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="DRY-RUN" Margin="0,0,6,0"/>
+              <Button x:Name="btnExtApply" Grid.Column="3" Style="{StaticResource PhxBtnFire}" Content="ПРИМЕНИТЬ ПРОФИЛЬ" Margin="0,0,6,0"/>
+              <Button x:Name="btnExtUndo" Grid.Column="4" Style="{StaticResource PhxBtn}" Content="Откат прогона"/>
+            </Grid>
+            <TextBox x:Name="txtExtLog" Height="170" IsReadOnly="True" Background="#12151D" Foreground="#C9CFDA"
+                     BorderBrush="#2A3140" BorderThickness="1" FontFamily="Consolas" FontSize="11"
+                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     Padding="6,4"/>
+            <TextBlock Margin="0,6,0,0" Foreground="#5A6070" FontSize="11"
+                       Text="Движок v1.2: плейбуки TweakHub (Version=1) и PHX-профили, Конституция-страж (HDD-вредное - БЛОК), DRY-RUN, SHA256 в журнале. Каталог наших профилей: %ProgramData%\PHX-HUB\profiles. Экспорт - по чекбоксам ТВИКОВ/ПРИЛОЖЕНИЙ."
+                       TextWrapping="Wrap"/>
+          </StackPanel>
         </Grid>
 
         <!-- 4. УСТРОЙСТВА -->
@@ -1452,7 +1866,7 @@ $script:Xaml = @'
               <TextBlock Text="Единый центр управления системой проекта H-PE11 // PHOENIX. Версия 1.0."
                          Foreground="#8B90A0" Margin="0,6,0,16" TextWrapping="Wrap"/>
               <TextBlock Foreground="#C9CBD4" TextWrapping="Wrap" FontSize="12.5" LineHeight="20"
-                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg).&#x0a;&#x0a;v1.1: профильный движок - каталог внешних профилей (ProgramData\PHX-HUB\profiles), импорт профиля с немедленным применением, verify-проход (перечитывание фактических значений после применения), службы в профилях - только из безопасного списка."/>
+                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg).&#x0a;&#x0a;v1.1: профильный движок - каталог внешних профилей (ProgramData\PHX-HUB\profiles), импорт профиля с немедленным применением, verify-проход (перечитывание фактических значений после применения), службы в профилях - только из безопасного списка.&#x0a;v1.2: движок ПЛЕЙБУКОВ TweakHub 1.5.0 (Version=1: builtin:/custom: шаги, PowerShell-скрипты) - исполняется БЕЗ установленного TweakHub; Конституция-страж: HDD-вредные шаги БЛОКИРУЮТСЯ с явной причиной; DRY-RUN: полный прогон без единой записи; SHA256 профиля пишется в журнал; откат прогона одним кликом; builtin-каталог TweakHub (22 твика) вшит из открытых исходников."/>
               <TextBlock Text="PHOENIX WILL RISE." Foreground="#FF7A2F" FontWeight="Bold" Margin="0,16,0,0"/>
             </StackPanel>
           </ScrollViewer>
@@ -1811,13 +2225,13 @@ function Build-PlaybookList {
 }
 
 # ============================================================
-#  v1.1: КНОПКИ ПРОФИЛЬНОГО ДВИЖКА
+#  v1.2: КНОПКИ ПРОФИЛЬНОГО ДВИЖКА
 # ============================================================
 
 $ui.btnPlayApplyFile.Add_Click({
     $dlg = New-Object Microsoft.Win32.OpenFileDialog
     $dlg.Filter = 'JSON профиль (*.json)|*.json'
-    $dlg.Title = 'PHX-HUB v1.1: выбрать профиль для применения'
+    $dlg.Title = 'PHX-HUB v1.2: выбрать профиль для применения'
     if (-not $dlg.ShowDialog($win)) { return }
     $pr = Test-PhxProfile -Path $dlg.FileName
     if (-not $pr.Ok) { Show-PhxMsg ('Профиль НЕ принят: ' + $pr.Err) -Title 'PHX-HUB: ошибка' -Icon Error; return }
@@ -1888,6 +2302,87 @@ $ui.btnPlayImport.Add_Click({
 })
 
 
+# ============================================================
+#  UI: ДВИЖОК ПРОФИЛЕЙ v1.2 (внешние плейбуки)
+# ============================================================
+
+function Write-ExtLog {
+    param([string]$Text)
+    $tb = $ui.txtExtLog
+    $line = ('[{0}]  {1}' -f (Get-Date -Format 'HH:mm:ss'), $Text)
+    $tb.AppendText($line + [Environment]::NewLine)
+    $tb.ScrollToEnd()
+}
+
+$ui.btnExtImport.Add_Click({
+    $dlg = New-Object Microsoft.Win32.OpenFileDialog
+    $dlg.Filter = 'Профиль/плейбук JSON (*.json)|*.json|Все файлы (*.*)|*.*'
+    $dlg.Title = 'PHX-HUB v1.2: импорт плейбука TweakHub или PHX-профиля'
+    if (-not $dlg.ShowDialog($win)) { return }
+    try {
+        $p = Import-PhxExternalProfile -JsonPath $dlg.FileName
+        $script:ExtProfile = $p
+        $okC = @($p.Steps | Where-Object { $_.Status -eq 'OK' }).Count
+        $skC = @($p.Steps | Where-Object { $_.Status -eq 'SKIP' }).Count
+        $blC = @($p.Steps | Where-Object { $_.Status -eq 'BLOCK' }).Count
+        Write-ExtLog ('ИМПОРТ: {0}' -f $p.Name)
+        Write-ExtLog ('SHA256: {0}' -f $p.Sha)
+        Write-ExtLog ('Шагов: {0} (к исполнению {1}, пропущено {2}, БЛОК конституции {3})' -f @($p.Steps).Count, $okC, $skC, $blC)
+        foreach ($st in @($p.Steps)) {
+            if ($st.Status -eq 'BLOCK') { Write-ExtLog ('  [БЛОК] {0} - {1}' -f $st.Title, $st.Reason) }
+        }
+        Write-ExtLog ('Далее: DRY-RUN (просмотр), затем ПРИМЕНИТЬ ПРОФИЛЬ.')
+        Set-Status ('Профиль загружен: {0}' -f $p.Name)
+    } catch { Write-ExtLog ('ОШИБКА ИМПОРТА: ' + $_.Exception.Message) }
+})
+
+$ui.btnExtShow.Add_Click({
+    if ($null -eq $script:ExtProfile) { Write-ExtLog 'Профиль не загружен. Сначала - Импорт плейбука.'; return }
+    $p = $script:ExtProfile
+    Write-ExtLog ('ШАГИ ПРОФИЛЯ: {0}  ({1})' -f $p.Name, $p.Source)
+    foreach ($st in @($p.Steps)) {
+        $mark = switch ($st.Status) { 'OK' {'[ok]  '} 'SKIP' {'[skip]'} 'BLOCK' {'[БЛОК]'} default {'[?]   '} }
+        $line = '  {0} #{1,2} {2}' -f $mark, $st.Idx, $st.Title
+        if ($st.Status -ne 'OK') { $line += '  :: ' + $st.Reason }
+        Write-ExtLog $line
+    }
+})
+
+$ui.btnExtDry.Add_Click({
+    if ($null -eq $script:ExtProfile) { Write-ExtLog 'Профиль не загружен. Сначала - Импорт плейбука.'; return }
+    $p = $script:ExtProfile
+    Set-Status 'DRY-RUN: прогон без изменений...'
+    $r = Invoke-PhxExtProfile -Prof $p -Dry
+    Write-ExtLog ('DRY-RUN завершён (ни одной записи не сделано): к исполнению {0}, пропущено {1}, блок {2}, сбоев {3}' -f $r.Ok, $r.Skip, $r.Block, $r.Fail)
+    Set-Status 'DRY-RUN готов.'
+})
+
+$ui.btnExtApply.Add_Click({
+    if ($null -eq $script:ExtProfile) { Write-ExtLog 'Профиль не загружен. Сначала - Импорт плейбука.'; return }
+    $p = $script:ExtProfile
+    $r = Show-PhxMsg -Text ('Профиль: {0}{1}SHA256: {2}{1}{1}Применить? Каждый шаг - с бэкапом реестра и записью в журнал.' -f $p.Name, [Environment]::NewLine, $p.Sha) -Title 'PHX-HUB v1.2: применение профиля' -Icon Warning -Question $true
+    if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return }
+    $rp = Show-PhxMsg -Text 'Создать точку восстановления перед профилем?' -Title 'PHX-HUB' -Question $true
+    if ($rp -eq [System.Windows.MessageBoxResult]::Yes) {
+        Set-Status 'Создание точки восстановления...'
+        [void](New-PhxRestorePoint)
+    }
+    $r2 = Invoke-PhxExtProfile -Prof $p
+    Write-ExtLog ('ПРИМЕНЕНО: исполнено {0}, пропущено {1}, блок {2}, сбоев {3}. Группа отката: {4}' -f $r2.Ok, $r2.Skip, $r2.Block, $r2.Fail, $r2.Group)
+    Show-PhxMsg ('Профиль применён: исполнено {0}, сбоев {1}.{2}Откат - кнопкой "Откат прогона" или через ЖУРНАЛ.' -f $r2.Ok, $r2.Fail, [Environment]::NewLine)
+    Set-Status 'Готово.'
+})
+
+$ui.btnExtUndo.Add_Click({
+    if ([string]::IsNullOrEmpty($script:LastExtGroup)) { Write-ExtLog 'Откатывать нечего: профили ещё не применялись в этой сессии.'; return }
+    $r = Show-PhxMsg -Text ('Откатить последний прогон профиля (группа {0})? Реестр вернётся из бэкапов.' -f $script:LastExtGroup) -Title 'PHX-HUB v1.2: откат' -Icon Warning -Question $true
+    if ($r -ne [System.Windows.MessageBoxResult]::Yes) { return }
+    Set-Status 'Откат прогона...'
+    $n = Invoke-PhxUndoAll -OnlyGroup $script:LastExtGroup
+    Write-ExtLog ('ОТКАТ: обработано записей журнала: {0}' -f $n)
+    $script:LastExtGroup = $null
+    Set-Status 'Откат завершён.'
+})
 # ============================================================
 #  UI: УСТРОЙСТВА (+ MSI-режим)
 # ============================================================
