@@ -1,13 +1,13 @@
 @echo off
 rem ============================================================
-rem  PHX-HUB v1.0 - launcher (CP866, DOS-codepage)
+rem  PHX-HUB v1.2 - launcher (CP866, DOS-codepage)
 rem  zapusk s avtopodiemom prav (UAC) i -STA dlya WPF
 rem  NE REDAKTIRUJ V BLOKNOTE - tolko CP866!
 rem ============================================================
 setlocal
 title PHX-HUB launcher
 echo.
-echo   PHX-HUB v1.0 (PHOENIX Control Center)
+echo   PHX-HUB v1.2 (PHOENIX Control Center - profile engine)
 echo.
 net session >nul 2>&1
 if errorlevel 1 goto ELEV
