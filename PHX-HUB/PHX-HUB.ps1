@@ -1,6 +1,6 @@
 ﻿#requires -Version 5.1
 <#
-  PHX-HUB v1.2  (PHOENIX / H-PE11-PHOENIX project)
+  PHX-HUB v1.3  (PHOENIX / H-PE11-PHOENIX project)
   Единый центр управления системой: твики, профили, устройства, энергия,
   сеть, приложения, службы, журнал с полным откатом.
   v1.2: PHX PROFILE ENGINE - движок внешних профилей по образцу TweakHub
@@ -11,6 +11,11 @@
   откат прогона одним кликом. builtin-каталог TweakHub вшит из его
   открытых исходников. Практики мира: WinUtil/CTT, Sophia Script,
   privacy.sexy, O&O ShutUp10++. Ноль внешних зависимостей.
+  v1.3: КАРТА СТАНЦИИ - методология Хозяина (карта железа + карта системы
+  = полная карта территории) одним кликом: срез ОС/железа/служб/автозагрузки/
+  задач/процессов/софта БЕЗ единой записи в систему, сверка HDD-конституции
+  по карте (ТРЕВОГИ), диф с предыдущей картой (детект дрейфа - мировая
+  практика configuration drift 2026). Карты: %ProgramData%\PHX-HUB\maps.
   PowerShell 5.1 + WPF. Каждый шаг пишется в журнал,
   каждый твик реестра заранее экспортируется в резервный .reg.
 #>
@@ -29,7 +34,7 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
-$script:PhxVersion = '1.2'
+$script:PhxVersion = '1.3'
 
 # --- Элевация (практика O&O ShutUp10: самоподъём через UAC)
 $wid  = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -1086,6 +1091,185 @@ $script:Playbooks = @(
 # ============================================================
 #  v1.2: ПРОФИЛЬНЫЙ ДВИЖОК (TweakHub-стиль, наш)
 #  Профиль JSON: ver 1.0/1.1 { name, tweaks[], appx[], services:[{name,start}] }
+# ============================================================
+#  КАРТА СТАНЦИИ (v1.3): полная карта территории одним кликом
+#  НОЛЬ записей в систему: карта - только чтение (как AIDA64).
+#  Синтез практик: configuration drift detection (baseline vs live,
+#  2026), CIS-подход (базлайн у нас = HDD-конституция), PS-инвентаризация
+#  служб/задач/автозапуска. Файлы карты: JSON + TXT + SHA256 (Law 4).
+# ============================================================
+#>>>MAP
+$script:MapDir = Join-Path $env:ProgramData 'PHX-HUB\maps'
+
+function Get-PhxMap {
+    # Сбор карты живой системы (только чтение)
+    $r = [ordered]@{}
+    $os = Get-CimInstance Win32_OperatingSystem
+    $ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR -ErrorAction SilentlyContinue).UBR
+    $r.os = [ordered]@{ caption=[string]$os.Caption; version=[string]$os.Version; build=[string]$os.BuildNumber; ubr=$ubr }
+    $r.boot = ('{0}' -f $os.LastBootUpTime)
+    $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+    $r.cpu = [ordered]@{ name=[string]$cpu.Name.Trim(); cores=[int]$cpu.NumberOfCores; threads=[int]$cpu.NumberOfLogicalProcessors; mhz=[int]$cpu.MaxClockSpeed }
+    $ram = @(Get-CimInstance Win32_PhysicalMemory)
+    $r.ram = [ordered]@{ totalMB=[int](($ram | Measure-Object Capacity -Sum).Sum/1MB); modules=@($ram | ForEach-Object { [ordered]@{ loc=[string]$_.DeviceLocator; maker=[string]$_.Manufacturer; part=[string]$_.PartNumber; mb=[int]($_.Capacity/1MB); mhz=[int]$_.Speed } }) }
+    $r.gpu = @(Get-CimInstance Win32_VideoController | ForEach-Object { [ordered]@{ name=[string]$_.Name; driver=[string]$_.DriverVersion; date=[string]$_.DriverDate } })
+    $r.disks = @(Get-CimInstance Win32_DiskDrive | ForEach-Object { [ordered]@{ model=[string]$_.Model.Trim(); sn=([string]$_.SerialNumber -replace '\s',''); gb=[int]($_.Size/1GB); iface=[string]$_.InterfaceType } })
+    $r.volumes = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object { [ordered]@{ letter=[string]$_.DeviceID; fs=[string]$_.FileSystem; gb=[math]::Round($_.Size/1GB,1); freeGb=[math]::Round($_.FreeSpace/1GB,1) } })
+    $r.net = @(Get-CimInstance Win32_NetworkAdapter -Filter 'PhysicalAdapter=True AND NetEnabled=True' | ForEach-Object { [ordered]@{ name=[string]$_.Name.Trim(); mac=[string]$_.MACAddress; mbps=[int]($_.Speed/1000000) } })
+    $r.services = @(Get-Service | ForEach-Object { [ordered]@{ n=[string]$_.Name; s=[string]$_.Status; t=[string]$_.StartType } })
+    $r.tasks = @(Get-ScheduledTask -ErrorAction SilentlyContinue | ForEach-Object { [ordered]@{ p=[string]$_.TaskPath; n=[string]$_.TaskName; st=[string]$_.State } })
+    $rr = @()
+    foreach ($k in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run')) {
+        if (Test-Path $k) {
+            $p = Get-ItemProperty $k -ErrorAction SilentlyContinue
+            foreach ($prop in $p.PSObject.Properties) {
+                if ($prop.Name -notin @('PSPath','PSParentPath','PSChildName','PSDrive','PSProvider')) {
+                    $rr += [ordered]@{ src=$k; name=[string]$prop.Name; val=[string]$prop.Value }
+                }
+            }
+        }
+    }
+    $r.run = $rr
+    $r.topProc = @(Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 15 | ForEach-Object { [ordered]@{ name=[string]$_.ProcessName; mb=[int]($_.WorkingSet64/1MB) } })
+    $soft = @()
+    foreach ($k in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')) {
+        $soft += @(Get-ItemProperty $k -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName } | ForEach-Object { [ordered]@{ name=[string]$_.DisplayName; ver=[string]$_.DisplayVersion } })
+    }
+    $r.software = @($soft | Sort-Object { $_.name } -Unique)
+    return $r
+}
+
+function Test-PhxMapConstitution {
+    # Сверка карты с HDD-конституцией (базлайн проекта, подход CIS)
+    param($Map)
+    $out = @()
+    $sm = $Map.services | Where-Object { $_.n -eq 'SysMain' } | Select-Object -First 1
+    if ($sm) {
+        if ([string]$sm.t -eq 'Disabled') {
+            $out += 'ТРЕВОГА|SysMain: тип запуска Disabled - нарушение HDD-конституции (на этом HDD SysMain ПОМОГАЕТ). Вернуть: sc config SysMain start= auto'
+        } elseif ([string]$sm.s -eq 'Stopped') {
+            $out += 'ВНИМАНИЕ|SysMain: остановлена (тип {0}) - запуск программ с HDD может быть вялым. Проверить: sc query SysMain' -f $sm.t
+        } else {
+            $out += 'OK|SysMain: {0}, {1} - конституция соблюдена' -f $sm.s, $sm.t
+        }
+    }
+    $pf = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' -Name EnablePrefetcher -ErrorAction SilentlyContinue).EnablePrefetcher
+    if ($null -eq $pf) { $out += 'СВЕДЕНИЕ|EnablePrefetcher: значение не задано (умолчание Windows = 3)' }
+    elseif ($pf -eq 0) { $out += 'ТРЕВОГА|EnablePrefetcher = 0: Prefetcher выключен - нарушение HDD-конституции. Вернуть значение 3' }
+    else { $out += 'OK|EnablePrefetcher = {0} (3 - оптимально для HDD)' -f $pf }
+    $df = $Map.tasks | Where-Object { $_.p -eq '\Microsoft\Windows\Defrag\' -and $_.n -eq 'ScheduledDefrag' } | Select-Object -First 1
+    if ($df) {
+        if ([string]$df.st -eq 'Disabled') { $out += 'ТРЕВОГА|ScheduledDefrag: отключена - нарушение HDD-конституции (HDD ждёт дефрагментацию по расписанию)' }
+        else { $out += 'OK|ScheduledDefrag: {0}' -f $df.st }
+    }
+    $ws = $Map.services | Where-Object { $_.n -eq 'WSearch' } | Select-Object -First 1
+    if ($ws -and [string]$ws.t -eq 'Disabled') { $out += 'ВНИМАНИЕ|WSearch: Disabled - без индекса поиск медленный, но HDD щадится (решение за Хозяином)' }
+    return $out
+}
+
+function Get-PhxMapDiff {
+    # Детект дрейфа: текущая карта против предыдущей (configuration drift)
+    param($Map, $PrevMap)
+    if (-not $PrevMap) { return @('СВЕДЕНИЕ|Предыдущей карты нет - дрейф считается с этого среза') }
+    $out = @()
+    $prevSvc = @{}; foreach ($s in $PrevMap.services) { $prevSvc[$s.n] = ('{0}|{1}' -f $s.s, $s.t) }
+    $curSvc = @{}; foreach ($s in $Map.services) { $curSvc[$s.n] = ('{0}|{1}' -f $s.s, $s.t) }
+    $new = @($curSvc.Keys | Where-Object { -not $prevSvc.ContainsKey($_) } | Sort-Object)
+    $gone = @($prevSvc.Keys | Where-Object { -not $curSvc.ContainsKey($_) } | Sort-Object)
+    $chg = @($curSvc.Keys | Where-Object { $prevSvc.ContainsKey($_) -and $prevSvc[$_] -ne $curSvc[$_] } | Sort-Object)
+    if ($new.Count) { $out += 'ДРЕЙФ|Службы появились: {0}' -f (($new | Select-Object -First 8) -join ', ') }
+    if ($gone.Count) { $out += 'ДРЕЙФ|Службы исчезли: {0}' -f (($gone | Select-Object -First 8) -join ', ') }
+    foreach ($c in ($chg | Select-Object -First 12)) { $out += 'ДРЕЙФ|Служба {0}: {1} -> {2}' -f $c, ($prevSvc[$c] -replace '\|', '/'), ($curSvc[$c] -replace '\|', '/') }
+    $prevRun = @($PrevMap.run | ForEach-Object { [string]$_.name + '=' + [string]$_.val })
+    $curRun = @($Map.run | ForEach-Object { [string]$_.name + '=' + [string]$_.val })
+    foreach ($a in @($curRun | Where-Object { $prevRun -notcontains $_ })) { $out += 'ДРЕЙФ|Автозагрузка +: ' + $a }
+    foreach ($r2 in @($prevRun | Where-Object { $curRun -notcontains $_ })) { $out += 'ДРЕЙФ|Автозагрузка -: ' + $r2 }
+    return $out
+}
+
+function Invoke-PhxMapCapture {
+    # Оркестр: сбор -> конституция -> дрейф -> файлы (JSON+TXT+SHA256) -> журнал
+    Set-Status 'Снятие карты станции (только чтение)...'
+    try {
+        $map = Get-PhxMap
+        $now = Get-Date
+        $stamp = $now.ToString('yyyyMMdd-HHmmss')
+        if (-not (Test-Path $script:MapDir)) { New-Item -Path $script:MapDir -ItemType Directory -Force | Out-Null }
+        $prev = $null
+        $prevFile = Get-ChildItem $script:MapDir -Filter 'map-*.json' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($prevFile) { try { $prev = Get-Content $prevFile.FullName -Raw | ConvertFrom-Json } catch { $prev = $null } }
+        $const = @(Test-PhxMapConstitution -Map $map)
+        $diff = @(Get-PhxMapDiff -Map $map -PrevMap $prev)
+        $mapObj = [ordered]@{ ver=$script:PhxVersion; host=$env:COMPUTERNAME; user=$env:USERNAME; stamp=$now.ToString('yyyy-MM-dd HH:mm:ss'); map=$map }
+        $json = ($mapObj | ConvertTo-Json -Depth 6)
+        $jsonPath = Join-Path $script:MapDir ('map-{0}.json' -f $stamp)
+        [IO.File]::WriteAllText($jsonPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+        $sha = (Get-FileHash $jsonPath -Algorithm SHA256).Hash
+        $sb = New-Object System.Text.StringBuilder
+        [void]$sb.AppendLine(('PHX-HUB v{0} - КАРТА СТАНЦИИ (карта железа + карта системы = полная карта территории)' -f $script:PhxVersion))
+        [void]$sb.AppendLine(('Снята: {0} | ПК: {1} | юзер: {2}' -f $mapObj.stamp, $mapObj.host, $mapObj.user))
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('== ЖЕЛЕЗО ==')
+        [void]$sb.AppendLine(('CPU: {0} ({1}C/{2}T, {3} МГц)' -f $map.cpu.name, $map.cpu.cores, $map.cpu.threads, $map.cpu.mhz))
+        [void]$sb.AppendLine(('RAM: {0} МБ ({1})' -f $map.ram.totalMB, (($map.ram.modules | ForEach-Object { '{0}: {1} {2} МБ {3} МГц' -f $_.loc, $_.maker, $_.mb, $_.mhz }) -join '; ')))
+        foreach ($g in $map.gpu) { [void]$sb.AppendLine(('GPU: {0} | драйвер {1} ({2})' -f $g.name, $g.driver, $g.date)) }
+        foreach ($d in $map.disks) { [void]$sb.AppendLine(('Диск: {0} | SN {1} | {2} ГБ | {3}' -f $d.model, $d.sn, $d.gb, $d.iface)) }
+        foreach ($v in $map.volumes) { [void]$sb.AppendLine(('Том: {0} {1} | {2} ГБ, свободно {3} ГБ' -f $v.letter, $v.fs, $v.gb, $v.freeGb)) }
+        foreach ($n in $map.net) { [void]$sb.AppendLine(('Сеть: {0} | MAC {1} | {2} Мбит/с' -f $n.name, $n.mac, $n.mbps)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('== ОС ==')
+        [void]$sb.AppendLine(('{0}, билд {1}.{2}' -f $map.os.caption, $map.os.build, $map.os.ubr))
+        [void]$sb.AppendLine(('Загрузка ОС: {0}' -f $map.boot))
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine(('== СЛУЖБЫ ({0}) ==' -f $map.services.Count))
+        foreach ($s in $map.services) { [void]$sb.AppendLine(('{0,-34} {1,-13} {2}' -f $s.n, $s.s, $s.t)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine(('== АВТОЗАГРУЗКА ({0}) ==' -f $map.run.Count))
+        foreach ($x in $map.run) { [void]$sb.AppendLine(('{0} = {1}' -f $x.name, $x.val)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine(('== ЗАДАЧИ: всего {0}; активных (не Disabled): {1} ==' -f $map.tasks.Count, @($map.tasks | Where-Object { $_.st -ne 'Disabled' }).Count))
+        foreach ($t in ($map.tasks | Where-Object { $_.st -ne 'Disabled' })) { [void]$sb.AppendLine(('{0}{1} [{2}]' -f $t.p, $t.n, $t.st)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('== ПРОЦЕССЫ ТОП-15 (память) ==')
+        foreach ($p in $map.topProc) { [void]$sb.AppendLine(('{0,-30} {1} МБ' -f $p.name, $p.mb)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine(('== СОФТ ({0}) ==' -f $map.software.Count))
+        foreach ($s in $map.software) { [void]$sb.AppendLine(('{0} {1}' -f $s.name, $s.ver)) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('== СВЕРКА HDD-КОНСТИТУЦИИ ==')
+        foreach ($c in $const) { [void]$sb.AppendLine('  ' + ($c -replace '\|', ': ')) }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('== ДРЕЙФ С ПРЕДЫДУЩЕЙ КАРТОЙ ==')
+        if ($diff.Count -eq 0) { [void]$sb.AppendLine('  изменений нет') } else { foreach ($c in $diff) { [void]$sb.AppendLine('  ' + ($c -replace '\|', ': ')) } }
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine(('SHA256 карты (JSON): {0}' -f $sha))
+        [void]$sb.AppendLine(('Файл карты: {0}' -f $jsonPath))
+        $txtPath = Join-Path $script:MapDir ('map-{0}.txt' -f $stamp)
+        [IO.File]::WriteAllText($txtPath, $sb.ToString(), (New-Object System.Text.UTF8Encoding($false)))
+        $alerts = @($const | Where-Object { $_.StartsWith('ТРЕВОГА') }).Count
+        Write-PhxLog ('КАРТА СТАНЦИИ: {0} (служб {1}, автозап {2}, задач {3}, софта {4}); ТРЕВОГ конституции: {5}; SHA256 {6}' -f $stamp, $map.services.Count, $map.run.Count, $map.tasks.Count, $map.software.Count, $alerts, $sha.Substring(0,16))
+        Set-Status ('Карта снята: {0}. ТРЕВОГ конституции: {1}' -f $stamp, $alerts)
+        $sum = New-Object System.Text.StringBuilder
+        [void]$sum.AppendLine(('КАРТА СТАНЦИИ СНЯТА: {0}' -f $stamp))
+        [void]$sum.AppendLine(('Служб: {0} | Автозапуск: {1} | Задач: {2} | Софт: {3}' -f $map.services.Count, $map.run.Count, $map.tasks.Count, $map.software.Count))
+        [void]$sum.AppendLine('')
+        [void]$sum.AppendLine('СВЕРКА HDD-КОНСТИТУЦИИ:')
+        foreach ($c in $const) { [void]$sum.AppendLine('  ' + ($c -replace '\|', ': ')) }
+        [void]$sum.AppendLine('')
+        [void]$sum.AppendLine('ДРЕЙФ С ПРЕДЫДУЩЕЙ КАРТОЙ:')
+        if ($diff.Count -eq 0) { [void]$sum.AppendLine('  изменений нет') } else { foreach ($c in $diff) { [void]$sum.AppendLine('  ' + ($c -replace '\|', ': ')) } }
+        [void]$sum.AppendLine('')
+        [void]$sum.AppendLine(('Файлы: map-{0}.json / map-{0}.txt' -f $stamp))
+        [void]$sum.AppendLine(('Каталог: {0}' -f $script:MapDir))
+        [void]$sum.AppendLine(('SHA256 (JSON): {0}' -f $sha))
+        return $sum.ToString()
+    } catch {
+        Write-PhxLog ('Ошибка снятия карты: {0}' -f $_.Exception.Message)
+        return ('ОШИБКА снятия карты: {0}' -f $_.Exception.Message)
+    }
+}
+#<<<MAP
+
 #  Каталог внешних профилей: %ProgramData%\PHX-HUB\profiles
 # ============================================================
 
@@ -1532,7 +1716,8 @@ $script:Xaml = @'
             <TextBlock Text="УПРАВЛЕНИЕ" Foreground="#5A6070" FontSize="10.5" Margin="16,4,0,6"/>
             <Button x:Name="navDash"   Style="{StaticResource PhxNav}" Tag="Dash"   Content="ГЛАВНАЯ"/>
             <Button x:Name="navTweaks" Style="{StaticResource PhxNav}" Tag="Tweaks" Content="ТВИКИ"/>
-            <Button x:Name="navPlay"   Style="{StaticResource PhxNav}" Tag="Play"   Content="ПРОФИЛИ"/>
+            <Button x:Name="navPlay"   Style="{StaticResource PhxNav}" Tag="Play"   Content="ПРОФИЛИ"/>
+            <Button x:Name="navMap"    Style="{StaticResource PhxNav}" Tag="Map"    Content="КАРТА"/>
             <Button x:Name="navDev"    Style="{StaticResource PhxNav}" Tag="Dev"    Content="УСТРОЙСТВА"/>
             <Button x:Name="navPower"  Style="{StaticResource PhxNav}" Tag="Power"  Content="ЭНЕРГИЯ"/>
             <Button x:Name="navNet"    Style="{StaticResource PhxNav}" Tag="Net"    Content="СЕТЬ"/>
@@ -1663,9 +1848,36 @@ $script:Xaml = @'
                      TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                      Padding="6,4"/>
             <TextBlock Margin="0,6,0,0" Foreground="#5A6070" FontSize="11"
-                       Text="Движок v1.2: плейбуки TweakHub (Version=1) и PHX-профили, Конституция-страж (HDD-вредное - БЛОК), DRY-RUN, SHA256 в журнале. Каталог наших профилей: %ProgramData%\PHX-HUB\profiles. Экспорт - по чекбоксам ТВИКОВ/ПРИЛОЖЕНИЙ."
+                       Text="Движок v1.3: плейбуки TweakHub (Version=1) и PHX-профили, Конституция-страж (HDD-вредное - БЛОК), DRY-RUN, SHA256 в журнале. Каталог наших профилей: %ProgramData%\PHX-HUB\profiles. Экспорт - по чекбоксам ТВИКОВ/ПРИЛОЖЕНИЙ."
                        TextWrapping="Wrap"/>
           </StackPanel>
+        </Grid>
+
+        <!-- 3b. КАРТА (v1.3) -->
+        <Grid x:Name="panMap" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <Grid Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="КАРТА СТАНЦИИ: карта железа + карта системы = полная карта территории. Только чтение - ноль записей в систему."
+                       Foreground="#8B90A0" VerticalAlignment="Center" FontSize="11.5" TextWrapping="Wrap"/>
+            <Button x:Name="btnMapSnap"   Grid.Column="1" Style="{StaticResource PhxBtnFire}" Content="СНЯТЬ КАРТУ" Margin="8,0,0,0"/>
+            <Button x:Name="btnMapFolder" Grid.Column="2" Style="{StaticResource PhxBtn}" Content="Папка карт" Margin="8,0,0,0"/>
+          </Grid>
+          <TextBox x:Name="txtMap" Grid.Row="1" IsReadOnly="True" Background="#12151D" Foreground="#C9CFDA"
+                   BorderBrush="#2A3140" BorderThickness="1" FontFamily="Consolas" FontSize="11"
+                   TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                   Padding="6,4"
+                   Text="Карта не снималась. Кнопка САНЯТЬ КАРТУ делает полный срез: ОС, железо, службы (состояние+тип запуска), автозапуск, задачи, процессы, софт - затем сверку с HDD-конституцией (ТРЕВОГИ) и диф с предыдущей картой (дрейф). Файлы: %ProgramData%\PHX-HUB\maps (JSON+TXT+SHA256). Карту можно передать агенту проекта - это глаза вместо догадок."/>
+          <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#5A6070" FontSize="11" TextWrapping="Wrap"
+                     Text="Методология Хозяина: прежде чем что-либо делать в системе - изучить её досконально, держать на руках карту территории. Снимай карту до и после каждого этапа изменений: диф покажет, что именно изменилось."/>
         </Grid>
 
         <!-- 4. УСТРОЙСТВА -->
@@ -1866,7 +2078,7 @@ $script:Xaml = @'
               <TextBlock Text="Единый центр управления системой проекта H-PE11 // PHOENIX. Версия 1.0."
                          Foreground="#8B90A0" Margin="0,6,0,16" TextWrapping="Wrap"/>
               <TextBlock Foreground="#C9CBD4" TextWrapping="Wrap" FontSize="12.5" LineHeight="20"
-                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg).&#x0a;&#x0a;v1.1: профильный движок - каталог внешних профилей (ProgramData\PHX-HUB\profiles), импорт профиля с немедленным применением, verify-проход (перечитывание фактических значений после применения), службы в профилях - только из безопасного списка.&#x0a;v1.2: движок ПЛЕЙБУКОВ TweakHub 1.5.0 (Version=1: builtin:/custom: шаги, PowerShell-скрипты) - исполняется БЕЗ установленного TweakHub; Конституция-страж: HDD-вредные шаги БЛОКИРУЮТСЯ с явной причиной; DRY-RUN: полный прогон без единой записи; SHA256 профиля пишется в журнал; откат прогона одним кликом; builtin-каталог TweakHub (22 твика) вшит из открытых исходников."/>
+                         Text="Механизм вдохновлён TweakHub (PrimeBuild-pc): каталог твиков с бэкапами, плейбуки, скор безопасности, MSI-режим устройств, редактор энергии. Дополнено лучшими мировыми практиками: WinUtil (CTT) - сетевые задержки и деbloat-чистка, Sophia Script - политики приватности, privacy.sexy - прозрачность каждой операции, O&amp;O ShutUp10++ - точки восстановления перед изменениями.&#x0a;&#x0a;Ключевые отличия от оригинала: нулевые зависимости (нативный PowerShell 5.1 + WPF, ничего не ставится), полный журнал с обратным порядком отката, автоматический reg-экспорт затрагиваемых ключей ДО каждой записи, перенос профилей JSON на флешке, русский интерфейс из коробки.&#x0a;&#x0a;Правила безопасности: точка восстановления перед массовыми операциями; удаление Appx - только для текущего пользователя и только заведомо возвратимого; службы - только смена типа запуска, прежний тип хранится в журнале; реестр - reg-экспорт перед каждой записью.&#x0a;&#x0a;Данные: %ProgramData%\PHX-HUB - журнал (journal.jsonl), лог (phx-hub.log), резервные копии (backup\ГРУППА\*.reg).&#x0a;&#x0a;v1.1: профильный движок - каталог внешних профилей (ProgramData\PHX-HUB\profiles), импорт профиля с немедленным применением, verify-проход (перечитывание фактических значений после применения), службы в профилях - только из безопасного списка.&#x0a;v1.2: движок ПЛЕЙБУКОВ TweakHub 1.5.0 (Version=1: builtin:/custom: шаги, PowerShell-скрипты) - исполняется БЕЗ установленного TweakHub; Конституция-страж: HDD-вредные шаги БЛОКИРУЮТСЯ с явной причиной; DRY-RUN: полный прогон без единой записи; SHA256 профиля пишется в журнал; откат прогона одним кликом; builtin-каталог TweakHub (22 твика) вшит из открытых исходников.&#x0a;v1.3: КАРТА СТАНЦИИ - методология Хозяина в инструменте: полный срез живой системы (ОС, железо, службы с типами запуска, автозапуск, задачи, процессы, софт) одним кликом БЕЗ единой записи в систему; сверка карты с HDD-конституцией (ТРЕВОГИ с причинами и командами возврата); диф с предыдущей картой - детект дрейфа (практика configuration drift 2026); карты в %ProgramData%\PHX-HUB\maps как JSON+TXT+SHA256 - файл карты можно передать агенту проекта, это глаза вместо догадок."/>
               <TextBlock Text="PHOENIX WILL RISE." Foreground="#FF7A2F" FontWeight="Bold" Margin="0,16,0,0"/>
             </StackPanel>
           </ScrollViewer>
@@ -1969,11 +2181,11 @@ function New-PhxTxt {
 # ============================================================
 
 $script:Panels = @{
-    Dash='panDash'; Tweaks='panTweaks'; Play='panPlay'; Dev='panDev'; Power='panPower'
+    Dash='panDash'; Tweaks='panTweaks'; Play='panPlay'; Map='panMap'; Dev='panDev'; Power='panPower'
     Net='panNet'; Apps='panApps'; Svc='panSvc'; Journal='panJournal'; About='panAbout'
 }
 $script:NavBtns = @{
-    Dash='navDash'; Tweaks='navTweaks'; Play='navPlay'; Dev='navDev'; Power='navPower'
+    Dash='navDash'; Tweaks='navTweaks'; Play='navPlay'; Map='navMap'; Dev='navDev'; Power='navPower'
     Net='navNet'; Apps='navApps'; Svc='navSvc'; Journal='navJournal'; About='navAbout'
 }
 
@@ -2398,6 +2610,15 @@ function Update-DeviceList {
     $bad = @($script:DevAll | Where-Object { $_.Status -ne 'OK' }).Count
     Set-Status ('Устройств: {0}, с проблемами: {1}.' -f $script:DevAll.Count, $bad)
 }
+
+$ui.btnMapSnap.Add_Click({
+    $out = Invoke-PhxMapCapture
+    $ui.txtMap.Text = $out
+})
+$ui.btnMapFolder.Add_Click({
+    if (-not (Test-Path $script:MapDir)) { New-Item -Path $script:MapDir -ItemType Directory -Force | Out-Null }
+    Start-Process explorer.exe -ArgumentList ('"' + $script:MapDir + '"')
+})
 
 $ui.btnDevRefresh.Add_Click({ Update-DeviceList })
 $ui.btnDevProblems.Add_Click({
