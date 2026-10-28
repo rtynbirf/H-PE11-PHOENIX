@@ -636,3 +636,20 @@ Stage Summary:
 - Внутри: Win11 Pro 26H2 26300.9807 ru-RU (базис Task 40, БИТ-В-БИТ) + autounattend v3 + $OEM$-кит с PHX_TWEAKPACK v2.0 (Report-only авто-слой; Apply решает Хозяин через CONTROL-меню)
 - ЭВ.1: живой прогон в Windows [--] (песочница Linux; статика 0 ошибок [x], El Torito/UDF/хеши [x]); физическая загрузка на станции 6ORMAN — докажет Хозяин (Rufus MBR+NTFS, как у WILLIAM v2)
 - Пароль ALPHA: Phoenix-2026 (сменить после входа); откат: [7] RESTORE / rollback.ps1 / reg_export
+---
+Task ID: TH-RECOVERY-37
+Agent: main (Z.ai)
+Task: Приказ Хозяина «наращивай, только не забывай про запись в репу РАБОЧЕГО АЛГОРИТМА АКТУАЛЬНОГО» — фиксация алгоритма PHX-OPTIMAL в репе
+
+Work Log:
+- PAT №3 проверен RAM-only (env-переменная, на диск НЕ писался — PAIR RULE): /user 200, репа push=True [x]
+- Сверка локал<->репа (scripts/phx_repo_diff.py): PHX-OPTIMAL 6/6 файлов SAME байт-в-байт (README 7c977193, TUNING e481f92c, MAINTENANCE 61344904, PROFILE 5a56ee29, SUMS 263d0d00, KIT.zip ed442946); PHX-HUB/PHX-HUB.ps1 SAME [x] — репа уже несла актуальную версию после TH-RECOVERY-36
+- rg «вероят|если стоит SSD|предполож» по README-PHX.txt = 0 совпадений [x]; блок «ТВОЙ ДИСК» на месте: ССД НЕТ, Seagate 7200.12 ST31000528AS, SMART 100%, TRIM нет
+- ЗАПИСЬ АЛГОРИТМА: PHX-OPTIMAL/ALGORITHM.md — канон (станция из репортов AIDA64 28.10 + HDS 26.10; фазы TUNING->ребут, MAINTENANCE раз в 1-2 мес; HDD-конституция: дефраг/SysMain/Prefetch НЕ off, кэш записи не трогать, TRIM-твики запрещены; Law 4 таблица 6 файлов)
+- Тело релиза phx-optimal-v1.0 дополнено ссылкой на ALGORITHM.md (PATCH тела, ассеты не тронуты)
+- Старые релизы не тронуты (Law 2); токен PAT №3 на диск не падал
+
+Stage Summary:
+- PHX-OPTIMAL/ALGORITHM.md: 7497 Б, SHA256 c0f8ff749360669b98c8572b04a6148d8f58ed76b10bb799b84be01d9e566658
+- Репа main: PHX-OPTIMAL актуален 6/6, PHX-HUB актуален, алгоритм зафиксирован [x]
+- ЭВ.1: сверка хешей API-скачиванием raw [x]; живой прогон TUNING/MAINTENANCE на станции — за Хозяином
