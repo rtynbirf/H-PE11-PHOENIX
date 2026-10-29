@@ -28,3 +28,7 @@ cred.sh
 *.key
 *.p12
 *.pfx
+
+# Python-артефакты
+__pycache__/
+*.pyc
