@@ -971,3 +971,20 @@ Stage Summary:
 - ПРИКАЗ «ДОЧИЩАЙ» ИСПОЛНЕН: репа приведена к заведённому порядку; сняты 2 посторонних объекта (deploy-key сирота + старый alpha-0.3 с тегом), релиз 0.3-1836 переведён в полноценные, память синхронизирована
 - Итог: 14 релизов / 96 ассетов / 14 тегов / 1 ветка-ствол + 2 маркера; история git чиста от секретов (полный блоб-скан)
 - [--] webhooks не осмотрены (скоуп токена); полный PAT отозвать после дела (напоминание тянется с TH-FORGE-35)
+
+---
+Task ID: TH-SCAN-42
+Agent: main (Z.ai)
+Task: AUDIT-2026-1030 P1 — скан git-историй singulyar/nous/H-PE11-PHOENIX (задание арбитражного аудита коллег: «проверить git-истории singulyar (судьба AIza-ключа) и nous (ghp_-фикстура)») + гигиена workspace-снапшотов 4.5b
+
+Work Log:
+- СКАН: 792 коммита через GitHub API (потоковый сканер, 8 воркеров, инкрементальная запись): singulyar/rumu 658, nous/main 36, H-PE11-PHOENIX/main 98; паттерны AIza / ghp_ / github_pat_ / gho_ / ghs_ / privkey-armor / pwd-литералы
+- H-PE11-PHOENIX: 0 находок — независимо от блоб-скана TH-CLEAN-41 подтверждена чистота 98 коммитов
+- singulyar: AIzaSyAO_F... x2 = публичная константа YouTube WEB Innertube (класс B по ADR-0012 НОУС; GitHub code search — 894 публичные копии); из HEAD удалена ранее коммитом c1989b2 (контроль: git grep AIzaSy HEAD = пусто); история НЕ чистится — предписание ADR-0012 §51-52 (класс B не требует ротации, чистка рвёт ссылки). PASSWORD x1 = демо-креды Postgres/OpenSearch в reference docker-compose (штатно для локального примера)
+- nous: AIza x4 = цитаты константы в аудио-документации (docs/genesis, tasks 0009) — это доказательная база классификации B, не утечка; ghp_-фикстура арбитража не подтвердилась
+- ВЕРДИКТ: живых секретов 0; все 7 попаданий — класс B / примеры; отчёт: fix_workspace/history_scan.json (ключ _verdict) + history_scan.log
+- WORKSPACE 4.5b: fix_workspace/.ghtoken выведен из git-индекса локальных снапшотов (/home/z/my-project), .gitignore дополнен (.ghtoken, .gh_token, .phx_gh_token, *.pem, *.key); блоб токена скраблен из локальной истории plumbing-rewrite'ом (read-tree/rm --cached/commit-tree/update-ref, reflog expire, gc --prune=now); remote у workspace отсутствует; контроль: литерал токена в блобах = 0, файл в истории = 0
+
+Stage Summary:
+- P1 СКАН ЗАВЕРШЁН: 792 коммита, живых секретов 0, все попадания классифицированы (класс B / reference-примеры), вердикт зафиксирован
+- Workspace-гигиена исполнена: токен вне индекса и вне истории снапшотов; оба PAT по-прежнему рекомендованы к отзыву после дела (напоминание тянется с TH-FORGE-35)
