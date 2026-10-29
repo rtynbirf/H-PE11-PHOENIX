@@ -1,17 +1,34 @@
 #!/bin/bash
-# Финализация main через нативный git push. v3 (credential helper)
-set -e
-TOKEN=$(cat /home/z/my-project/.gh_token | tr -d '\r\n')
+# Финализация main через нативный git push. v4 (AUDIT-2026-1030 / FINDING-C2):
+#   - токен из gh_auth (env/credential store), plaintext-файлы не читаются
+#   - credential helper во временном файле mktemp с правами 700, путь уникален
+#   - trap-очистка при ЛЮБОМ исходе (EXIT/INT/TERM) — cred-файл не остаётся на диске
+#   - set -euo pipefail: неудачный push реально роняет скрипт (раньше маскировался tail)
+set -euo pipefail
 W=/home/z/my-project/b1/gitwork
+CRED_FILE=""
+
+cleanup() {
+  if [ -n "$CRED_FILE" ] && [ -f "$CRED_FILE" ]; then rm -f "$CRED_FILE"; fi
+  if [ -f "$W/.git/config" ]; then git config --unset credential.helper 2>/dev/null || true; fi
+}
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+
+. "$(dirname "$0")/../lib/gh_auth.sh"
+TOKEN=$(gh_token) || exit 1
+
 rm -rf "$W"
 mkdir -p "$W"
 cd "$W"
 git init -q
 git config user.name "PHOENIX11"
 git config user.email "phoenix11@noreply.local"
-printf '#!/bin/bash\necho username=x-access-token\necho password=%s\n' "$TOKEN" > cred.sh
-chmod 700 cred.sh
-git config credential.helper '/home/z/my-project/b1/gitwork/cred.sh'
+CRED_FILE=$(mktemp "${TMPDIR:-/tmp}/phx_cred.XXXXXX")
+chmod 700 "$CRED_FILE"
+printf '#!/bin/bash\necho username=x-access-token\necho password=%s\n' "$TOKEN" > "$CRED_FILE"
+git config credential.helper "$CRED_FILE"
 URL=https://github.com/rtynbirf/H-PE11-PHOENIX.git
 git fetch --quiet "$URL" main
 PARENT=$(git rev-parse FETCH_HEAD)
@@ -37,4 +54,3 @@ COMMIT=$(git commit-tree "$TREE" -p "$PARENT" -m "PHOENIX11: WILLIAM B1 ISO 2610
 echo "commit=$COMMIT"
 git push "$URL" "$COMMIT:refs/heads/main" 2>&1 | tail -3
 echo "PUSH_DONE"
-rm -f cred.sh

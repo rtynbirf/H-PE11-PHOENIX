@@ -74,12 +74,28 @@ class ParamikoSSHVendor:
                     protocol_version=None):
         import paramiko
         c = paramiko.SSHClient()
-        c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # AUDIT-2026-1030 / FINDING-C3: TOFU вместо AutoAddPolicy — первое
+        # подключение доверяем и сохраняем host-key, дальше только строгое сравнение.
+        kh = os.path.join(os.path.expanduser('~'), '.ssh', 'known_hosts')
+        first_use = not (os.path.exists(kh) and os.path.getsize(kh) > 0)
+        if first_use:
+            print('[TOFU] first use: saving host-key to', kh, flush=True)
+            c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            os.makedirs(os.path.dirname(kh), exist_ok=True)
+        else:
+            c.load_host_keys(kh)
+            c.set_missing_host_key_policy(paramiko.RejectPolicy())
         kw = dict(self.connect_kwargs)
         if key_filename:
             kw["key_filename"] = key_filename
         c.connect(host, port=int(port or 22), username=username or "git",
                   allow_agent=False, look_for_keys=False, timeout=30, **kw)
+        if first_use:
+            try:
+                c.get_host_keys().save(kh)
+                os.chmod(kh, 0o600)
+            except Exception as e:
+                print('[TOFU] known_hosts save failed:', e, flush=True)
         t = c.get_transport()
         chan = t.open_session(timeout=30)
         # GIT_PROTOCOL не шлём: GitHub и по v0 отдаёт полный протокол пуша

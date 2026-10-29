@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Финализатор: манифест-блоб + дерево + коммит + ref. Блобы УЖЕ в репе (проверено).
-import json, base64, hashlib, time
+import json, base64, hashlib, os, sys, time
 import urllib.request, urllib.error
 
 API = 'https://api.github.com/repos/rtynbirf/H-PE11-PHOENIX'
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 
 def hdr(ct='application/json'):
     return {'Authorization': f'Bearer {TOKEN}', 'Accept': 'application/vnd.github+json',

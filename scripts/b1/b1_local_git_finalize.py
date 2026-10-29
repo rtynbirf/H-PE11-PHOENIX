@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Гарантированная финализация: блобы из репы -> локальный git -> push.
-import json, base64, subprocess, sys, time, hashlib
+import json, base64, subprocess, os, sys, time, hashlib
 import urllib.request, urllib.error
 
 API = 'https://api.github.com/repos/rtynbirf/H-PE11-PHOENIX'
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 W = '/home/z/my-project/b1/gitwork'
 
 def fetch_blob(sha, retries=6):
@@ -56,8 +58,12 @@ msg = ('PHOENIX11: WILLIAM B1 ISO 26100.1_PROFESSIONAL_X64_RU-RU.ISO '
 COMMIT = sh(['git', 'commit-tree', TREE, '-p', PARENT, '-m', msg])
 print('commit:', COMMIT[:12], flush=True)
 
-url = f'https://x-access-token:{TOKEN}@github.com/rtynbirf/H-PE11-PHOENIX.git'
-r = subprocess.run(['git', 'push', url, f'{COMMIT}:refs/heads/main'], cwd=W, capture_output=True)
+# AUDIT-2026-1030 / FINDING-C4: URL без токена (виден в ps), push через credential helper из env
+url = 'https://github.com/rtynbirf/H-PE11-PHOENIX.git'
+helper = '!f(){ echo username=x-access-token; echo "password=$GH_TOKEN"; };f'
+r = subprocess.run(['git', '-c', f'credential.helper={helper}', 'push', url,
+                    f'{COMMIT}:refs/heads/main'], cwd=W, capture_output=True,
+                   env={**os.environ, 'GH_TOKEN': TOKEN})
 print('push rc:', r.returncode, r.stdout.decode()[-200:], r.stderr.decode()[-300:], flush=True)
 if r.returncode != 0:
     sys.exit(1)

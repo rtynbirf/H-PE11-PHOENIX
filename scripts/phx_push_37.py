@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # PHX Task 37: sha-aware push worklog.md (кролик принят, разбор AIDA 6ORMAN-i3) -> rtynbirf/H-PE11-PHOENIX (main)
-import base64, json, sys, urllib.request
+import base64, json, os, sys, urllib.request
 
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 REPO = 'rtynbirf/H-PE11-PHOENIX'
 API = f'https://api.github.com/repos/{REPO}/contents'
 

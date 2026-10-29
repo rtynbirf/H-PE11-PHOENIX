@@ -4,7 +4,9 @@
 import json, os, hashlib, subprocess, sys
 import urllib.request, urllib.error
 
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 REL = 423108931
 API = f'https://api.github.com/repos/rtynbirf/H-PE11-PHOENIX/releases/{REL}'
 UP = f'https://uploads.github.com/repos/rtynbirf/H-PE11-PHOENIX/releases/{REL}/assets?name='
@@ -27,12 +29,16 @@ def api(url, method='GET', body=None, ct='application/json'):
 
 def upload(path, name):
     size = os.path.getsize(path)
-    # curl с octet-stream (urllib с большими телами капризен)
+    # curl с octet-stream (urllib с большими телами капризен).
+    # AUDIT-2026-1030 / EXTRA: токен подаётся через '-K -' (config из stdin),
+    # чтобы Authorization-заголовок не светился в argv/process listing.
     r = subprocess.run(['curl', '-sS', '-X', 'POST',
-        '-H', f'Authorization: Bearer {TOKEN}',
+        '-K', '-',
         '-H', 'Content-Type: application/octet-stream',
         '--data-binary', f'@{path}', f'{UP}{name}',
-        '-w', '%{http_code}', '-o', f'{ADIR}/resp.json'], capture_output=True, text=True, timeout=900)
+        '-w', '%{http_code}', '-o', f'{ADIR}/resp.json'],
+        input=f'header = "Authorization: Bearer {TOKEN}"\n',
+        capture_output=True, text=True, timeout=900)
     return r.stdout.strip()
 
 def main():

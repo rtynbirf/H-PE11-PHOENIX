@@ -14,7 +14,9 @@ API = f'https://api.github.com/repos/{REPO}'
 CHUNK = 40 * 2**20
 WORKERS = 14
 QUEUE_CAP = 10          # tmp-чанков на диске максимум (~400 МБ)
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 REPO_DIR = 'artifacts/iso_26100.1_pro_ru_v2'
 MANIFEST_OUT = '/home/z/my-project/b1/ISO_MANIFEST_v2.json'
 TMPDIR = '/home/z/my-project/b1/stream_tmp'

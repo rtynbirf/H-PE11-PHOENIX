@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Бенчмарк: агрегатная скорость параллельного POST'а блобов в GitHub (N потоков x 8MB)
-import base64, hashlib, json, time, sys
+import base64, hashlib, json, os, sys, time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 API = 'https://api.github.com/repos/rtynbirf/H-PE11-PHOENIX'
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 8
 SZ = 8 * 2**20

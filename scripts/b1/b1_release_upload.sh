@@ -1,7 +1,14 @@
 #!/bin/bash
 # Заливка ISO в релиз ассетами ~1GB (26 блобов по 40MiB каждый).
 set -e
-TOKEN=$(cat /home/z/my-project/.gh_token | tr -d '\r\n')
+# AUDIT-2026-1030 / FINDING-C1 + EXTRA: токен из gh_auth; заголовок авторизации
+# подаётся в curl через временный файл (-H @file), чтобы токен не светился в argv/ps.
+. "$(dirname "$0")/../lib/gh_auth.sh"
+TOKEN=$(gh_token) || exit 1
+HDR_FILE=$(mktemp "${TMPDIR:-/tmp}/phx_hdr.XXXXXX")
+trap 'rm -f "$HDR_FILE"' EXIT INT TERM
+printf 'Authorization: Bearer %s\n' "$TOKEN" > "$HDR_FILE"
+chmod 600 "$HDR_FILE"
 REL=423072681
 UP="https://uploads.github.com/repos/rtynbirf/H-PE11-PHOENIX/releases/${REL}/assets?name="
 W=/home/z/my-project/b1/gitwork
@@ -25,7 +32,7 @@ for k in 0 1 2 3; do
   echo "собран: $SIZE байт, sha256=${SHA256:0:16}..."
   echo "$SHA256  $NAME" >> "$ADIR/SHA256SUMS_ASSETS.txt"
   echo "upload $NAME..."
-  HTTP=$(curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/octet-stream" \
+  HTTP=$(curl -sS -X POST -H @"$HDR_FILE" -H "Content-Type: application/octet-stream" \
     --data-binary "@$ADIR/$NAME" \
     "${UP}${NAME}" -w "%{http_code}" -o /home/z/my-project/b1/asset/upload_resp_$k.json)
   echo "upload HTTP=$HTTP $(date -u +%H:%M:%S)"

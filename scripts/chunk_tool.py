@@ -14,7 +14,9 @@ import urllib.request, urllib.error
 REPO = 'rtynbirf/H-PE11-PHOENIX'
 API = f'https://api.github.com/repos/{REPO}'
 CHUNK = 40 * 2**20  # 40 MiB
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 
 def hdr(extra=None):
     h = {'Authorization': f'Bearer {TOKEN}', 'Accept': 'application/vnd.github+json',

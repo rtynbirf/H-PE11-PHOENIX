@@ -22,3 +22,9 @@ toolroot/
 credentials*
 *_token*
 .gh_token
+.phx_gh_token
+cred.sh
+*.pem
+*.key
+*.p12
+*.pfx

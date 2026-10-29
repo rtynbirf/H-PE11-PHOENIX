@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 # Заливка ISO-чанков через Contents API PUT (короткие запросы, по одному).
 # Блобы берём из локального git (git cat-file), сеть вниз не нужна.
-import json, base64, subprocess, sys, time
+import json, base64, subprocess, os, sys, time
 import urllib.request, urllib.error
 
 API = 'https://api.github.com/repos/rtynbirf/H-PE11-PHOENIX'
-TOKEN = open('/home/z/my-project/.gh_token').read().strip()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from gh_auth import gh_token  # AUDIT-2026-1030: env/credential store вместо plaintext
+TOKEN = gh_token()
 W = '/home/z/my-project/b1/gitwork'
 
 def req(url, method='GET', body=None, retries=7, timeout=600):
