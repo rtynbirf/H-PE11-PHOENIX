@@ -1132,3 +1132,21 @@ Work Log:
 Stage Summary:
 - webm (981 МБ, 190 блобов) вычищены из истории всех веток, кроме main, и всех 9 тегов; сайт, музыка, релизы и оракулы не пострадали; размер репы 2,4 ГБ → ~1,5 ГБ случится после перезаписи main (один клик владельца: ruleset Inactive → мой force-push → Active) и уборки gc GitHub (мгновенно — тикетом в Support, иначе в свои циклы обслуживания)
 - Урок в контур: rulesets — не классическая защита; fine-grained PAT с Administration:write правит классику (DELETE/PUT protection), но не rulesets (404) — для гейта main нужен либо UI владельца, либо токен с admin:org у организации (у персонального аккаунта организации нет)
+
+---
+Task ID: TH-HYGIENE-WEBM-46a
+Agent: hygiene (Z.ai)
+Task: финал TH-HYGIENE-WEBM-46 — перезапись main (правила временно выключены владельцем)
+
+Work Log:
+- Владелец в UI выключил ruleset 25155276 (Enforcement: Disabled; PATCH правилам fine-grained PAT недоступен — 404×3, в т.ч. полным телом; классическую защиту токен при этом правит штатно)
+- ОКНО ПЕРЕЗАПИСИ main: свежесть сверена (remote main = 73574f3fb10f…, не уехал); классическая защита снята (DELETE 204) → force-push переписанной истории: + 73574f3...70e98fd main -> main (forced update) → классическая защита возвращена байт-в-байт (PUT 200)
+- ИТОГ ИСТОРИИ: все 4 ветки (main 70e98fd5, rumu 447b33f3, latka-c141-wip b40d1c25, minus-fond 1c10034a) + все 9 тегов — на переписанных цепочках; webm в истории 0; вырезано 190 блобов / 981,2 МБ
+- ЗЕЛЁНОЕ НА НОВОМ main (70e98fd5): Такт-гейт (доказательство выпуска) success; pages build and deployment success; Lighthouse CI success; музыка: фонд HEAD 200 + audio/mpeg + ACAO:*, шасси 200
+- Scorecard failure на main — НЕ РЕГРЕССИЯ перезаписи: лог джобы даёт «refs/heads/main not supported with push event / Only the default branch rumu is supported» (publish_results требует дефолтную ветку; триггер push:[main] падал бы на ЛЮБОМ пуше в main и до перезаписи; на rumu Scorecard зелёный и на старой, и на переписанной голове; rerun воспроизвёл то же). Кандидат в тикет (правка scorecard.yml — вنية hygiene не входила), не тронут
+- ГРАНИЦЫ: деревья кончиков не менялись (rumu tree 83ed8ac4 до/после идентичны), коллегу/волну С141 не задел, нулевые изменения контента сайта
+- ОСТАВШИЕСЯ ХВОСТЫ: (1) владелец возвращает ruleset 25155276 → Active; (2) W0: отзыв токена владельцем после финала; (3) размер репы упадёт 2,4 ГБ → ~1,5 ГБ после серверной уборки GitHub (мгновенно — Support-тикет «run git gc on rtynbirf/singulyar»); (4) scorecard.yml push-триггер на main — будущий тикет
+
+Stage Summary:
+- Приказ 3 исполнен до конца: webm (981 МБ) вычищены из истории ВСЕХ веток и тегов, музыка играет, сайт цел, оракулы зелёные, отчёты в репе (TH-HYGIENE-WEBM-46 + 46a)
+- Урок в контур: rulesets не правятся fine-grained PAT (404 при Administration:write) — гейты main включаются/выключаются только руками владельца в UI; scorecard-action с publish_results:true должен триггериться только на дефолтную ветку
