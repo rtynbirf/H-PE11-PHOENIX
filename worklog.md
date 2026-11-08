@@ -2336,3 +2336,28 @@ Stage Summary:
 - Э-2 жива: 7/7 issues (машинное свидетельство wave_E2_results.json); мир → пункт карты → предложение → приёмка
 - Живые раны для следующей волны названы по своим П-номерам: П-17 (universal-agent манифест), П-23 (ruvson корень), П-10/T10 (6 dependabot-PR)
 - Пломба #6 канона SPEC-0003 — этой записью
+
+---
+Task ID: TH-POLIMAT-EXEC-1
+Agent: main (Z.ai)
+Task: АВГЕЕВЫ КОНЮШНИ — исполнение волны W-AUD-02..06 поверх закрытой Э-1/Э-2: живые раны CI, dependabot-волна, карта 38→41, паспорта-прививки новорождённых, отчёты в issues роя
+
+Work Log:
+- РОЙ-ДИАГНОСТИКА 4 агентами параллельно (read-only, токен только в env): tripwire-шестёрка, github-runbook, 6 флагманов, реестр PR/веток; вывод — корень tripwire-инцидента 11-06 самоликвидировался 23:34, живой корень один: эксклуд pathspec без /* в ruvson-lyrics
+- W-AUD-02 ИСПОЛНЕНО: патч guardian-tripwire.yml ruvson-lyrics `v*_parts` → `v*_parts/*` (95dcb5d; корень ложной AKIA-тревоги на base64 MP3 — pathspec каталога без /* не исключает содержимое, воспроизведено локально); Issues ruvson-lyrics включены (канал ALARM был мёртв: POST /issues → 410); tripwire зелёный ×2 (push+dispatch на 95dcb5d)
+- W-AUD-03 ПРОГРЕСС: корень = квота Actions-хранилища аккаунта; ревизия 41 репо (scripts/quota_inventory.py): артефакты/кэши/пакеты = 0 байт — выбито историческим расходом эпохи 880 МБ ISO; retention 90→14 (dfa9e2d); rerun зелёный после пересчёта usage 6-12 ч
+- W-AUD-04 ПОДТВЕРЖДЕНО: 6 флагманов зелёные на main (polymath-os CI+blood, runtime-protocol blood, universal-agent ci, cell-rs metabolism ×3, release-vault ×2, commons); активно-красных нет
+- W-AUD-05 ИСПОЛНЕНО (SHA-канон, свежий head перед мержем): voice-atlas-llm #1/#2/#3(после @dependabot rebase)/#5 влиты, universal-agent #3 влит (миф о красном снят: merged 09:19); #4 numpy закрыт с причиной (2.5.x требует py≥3.12, ядро на 3.11); открытых PR 0; voice-atlas main CI #51 success
+- W-AUD-06 ИСПОЛНЕНО: docpack/03 → 41 (26+15; +rumu, +polymath-gen, +rtynbirf); ARCHITECTURE + CANON verify_architecture.py аддитивно; опись inventory-2026-11-08-41repo.json; вердикт СОГЛАСОВАНА (audit/verify-2026-11-08-r5.txt, fails=0, warns=2); edinyy-svod перегенерирован по 41 (211 881 Б, sha256 081cdf21…; свод поймал устаревшую видимость agryp прив→публ); repo-doctrine/06 аддитивная дельта (9655950); hub 8685c18 рекбейз поверх волны Э-2 соседа
+- W-AUD-11 ИСПОЛНЕНО: polymath-gen ci зелёный ×2 (#6/#7); CI поймал 2 реальных бага: flat-layout (→ packages.find) и pytest вне установки; dependabot pip+actions группой; PASSPORT.md с llm_run_counter: 0 (TH-PM-10); релиз v0.1.0 + SHA256SUMS-ассет; topics аддитивны (PATCH принят-не сохранён — косметика)
+- W-AUD-12 ИСПОЛНЕНО: agryp ci.yml (make agryp + make audit/audit-ctl) зелёный с первого вдоха ×2 (474541f, 9210b5e); dependabot actions
+- W-AUD-14/15 УТОЧНЕНЫ ПЛАМБАМИ: CodeQL — GET default-setup работает, PUT → 404 (включение только UI/приложение); rulesets на 15 приватных — 403 «Upgrade to GitHub Pro» = план аккаунта, не токен; polimat-guard канон извлечён (universal-agent id 26772138: deletion + non_fast_forward на ~DEFAULT_BRANCH)
+- ОТЧЁТЫ РОЮ: polimat-hub #3/#5/#6/#7/#9/#10/#11/#12/#13 закрыты с отчётами (комментарии 6720169899…6720172351), #4/#14/#15/#16/#17 открыты с прогрессом; П-18..П-39 остаются бэклогом волн
+- ФАНТОМ ЗАПЛОМБИРОВАН: транспорт вывода сессии ест литерал «[ma» при показе (файлы целы — blob-SHA и булевы тесты по байтам); урок: верифицировать значениями по байтам, не строковым выводом
+- Токен нигде не сохранён; все push одноразовым credential-helper, API = истина
+
+Stage Summary:
+- Живых красных CI в аккаунте: 2 (runbook bundle-backup, ruvson pages) — обе квотные, сойдут после пересчёта 6-12 ч; tripwire-шестёрка и флагманы зелёные
+- Карта 41 = истина во всех четырёх источниках (docpack, ARCHITECTURE+CANON, edinyy-svod, repo-doctrine) с машинной приёмкой
+- Открытыми остались пункты Хозяина: W-AUD-01 (токен-цикл), W-AUD-07 (Ф2 filter-repo — только по явной команде), W-AUD-13 (SWH-аккаунт), W-AUD-14 (CodeQL UI), W-AUD-15 (план Pro)
+- Пломба #7 канона SPEC-0003 — этой записью
