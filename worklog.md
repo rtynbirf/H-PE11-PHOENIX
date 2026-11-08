@@ -2315,3 +2315,24 @@ Stage Summary:
 - ВСЕ 17 ПРЕДЛОЖЕНИЙ ЖИВЫ: polimat-hub issues #1..#17 (машинное свидетельство: scripts/gh_work/proposals/created-issues.json)
 - Мандат исполнен: 16/16 пунктов W-AUD + контракт (#1 = индекс волны)
 - Рой получил карту сверки с миром: приёмка каждого пункта лежит в теле соответствующего issue
+
+---
+Task ID: TH-ROY-PROP-2
+Agent: main (Z.ai)
+Task: ВОЛНА Э-2 «СВЕЖИЙ СРЕЗ МИРА» — верифицировать карты первоисточниками, пересчитать покрытие, живой срез CI/PR-хвостов, веб-бенчмарк 2026-11-08, завести предложения поверх Э-1 по пунктам карт
+
+Work Log:
+- ВЕРИФИКАЦИЯ ПЕРВОИСТОЧНИКОВ (не верил П-00 на слово): T01-T12 (repo-doctrine/09) + T13-T23 (repo-doctrine/11) + W-AUD-01..16 (polimat-hub/ROADMAP-2026-11-08) + SWARM-ROADMAP п.1-19 = 58 пунктов; сопоставление с таблицей П-00 → каждый пункт покрыт предложением П-01..П-39 или собственным issue; «ПОКРЫТИЕ 100%» ПОДТВЕРЖДЕНО фактами
+- ЖИВОЙ СРЕЗ CI (41 репо, facts.json): 31 зелёный, 2 красных — universal-agent ci=failure (манифест-свежесть = П-17 P0), ruvson-lyrics guardian-tripwire=failure (корень трипваеров = П-23 P0); 6 открытых dependabot-PR (universal-agent#3, voice-atlas-llm#1..#5 = хвост T10); cell-swarm PR#5 ВЛИТ (T05/T05-ген/agryp-клетка в геноме — закрыто)
+- ФАКТ-СБОР 41/41: ветки, HEAD SHA, push, CI last_run, open issues/PR, README, languages (scripts/facts.json, метод TH-AUD-1)
+- ВЭБ-СРЕЗ 2026-11-08 (9 живых запросов, источники в телах issues): MCP spec 2026-07-28 stateless core + MRTR + CIMD; A2A v1.0 Linux Foundation 150+ орг Signed Agent Cards; EU CRA reporting в силе с 11.09.2026 (24-ч SLA); Dependabot auto-triage rules + security campaigns; GitHub Agentic Workflows tech preview + Agent HQ; llms.txt = inference-карта (Google Search игнорирует, Chrome/Lighthouse «Agentic Browsing»)
+- ЗАВЕДЕНО 7 ISSUES ВОЛНЫ Э-2 (POST /issues = 201 x7): polimat-hub#58 (ИНДЕКС Э-2) + polimat-hub#59 (Э-2.5 auto-triage → П-03), commons#7 (Э-2.1 MCP 2026-07-28 → SWARM п.14), cell-swarm#9 (Э-2.2 Signed Agent Cards → П-05), H-PE11-PHOENIX#3 (Э-2.3 CRA SBOM-контур → П-35/П-09), repo-doctrine#18 (Э-2.4 доктрина сама следит → T03/П-03), rtynbirf.github.io#1 (Э-2.6 Agentic Browsing → П-20/SWARM п.15); каждое: ПУНКТ КАРТЫ + ЧТО ПРИНЕС МИР (URL) + СВОЁ в 4 слоях + ПРИЁМКА МАШИННАЯ
+- ПЕРЕКРЁСТКИ: комментарий-индекс в polimat-hub#58 (6/6 целей перечислены живыми номерами), аддитивная пометка в П-00 (polimat-hub#18, comment 6719711644)
+- ФРЕЙМИНГ СОХРАНЁН: УНИВЕРСАЛЬНОЕ (CRA-контур, auto-triage, llms.txt) / УНИКАЛЬНОЕ (SEALS как SBOM-носитель и подпись Agent Card) / СИНГУЛЯРНОЕ (агентный workflow «доктрина сама следит», 24-ч SLA скорости сверки) / ЭМЕРДЖЕНТНОЕ (волна роя как реакция на движение мира)
+- Токен нигде не сохранён; push одноразовым чистым клоном /tmp, клон удалён после пломбы
+
+Stage Summary:
+- Э-1 верифицирована фактами: 58/58 пунктов покрыты предложениями — карта и предложения ДЛЯ РОЯ полны
+- Э-2 жива: 7/7 issues (машинное свидетельство wave_E2_results.json); мир → пункт карты → предложение → приёмка
+- Живые раны для следующей волны названы по своим П-номерам: П-17 (universal-agent манифест), П-23 (ruvson корень), П-10/T10 (6 dependabot-PR)
+- Пломба #6 канона SPEC-0003 — этой записью
