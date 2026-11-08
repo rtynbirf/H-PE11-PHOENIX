@@ -2386,3 +2386,16 @@ Stage Summary:
 - ЗАКРЫТО ISSUES: cell-swarm#8, polimat-hub#20 (П-02), polimat-hub#32 (П-14); починено CI ×2; одето репо ×14; vulnerability ×3
 - ГРАБЛИ В ПОМЯТКЕ: секреты меняются в волне ротации токена · YAML: кавычки в name шага · данные без бандла не удалять · архив не чинят — архив хранят
 - Пломба #7 канона SPEC-0003 — этой записью
+
+---
+
+## TH-DODELKA-1 · 2026-11-08 (вечер) · POLYMATH=МУЛЬТИАГЕНТ (сессия web-7230aa7c)
+**Task:** директива №3 ч.(в) «исправляй и доделывай по каждому пункту» + «отчёт о проделанном в репо сохрани».
+**Work Log:**
+- F#7 | Токен верифицирован: GET /user HTTP 200 login=rtynbirf. Свежий срез: 41 репо, 217 открытых issues. RED CI = 0: rtynbirf SWARM-SYNC success (12:22 UTC, 0a9d2e6d), snake success (13:26), nous forge-linux/ci/guardian-tripwire success ×3 — обе красные точки утра зажили.
+- F#8 | Волна слияния ДПР-2: 14 новых Dependabot PR → **13 влиты** squash (11 первым проходом; edinyy-svod#5 `a79278ff` и rtynbirf#1 `0ca97b07` — после update-branch 202 → mergeable clean). SHA каждого экшена разыменован живым `GET /repos/{action}/git/ref/tags/{tag}`; голые теги пересажены на полный SHA в ветках (edinyy-svod ci.yml, rtynbirf swarm-sync.yml, PUT contents HTTP 200). CI head проверялся до вливания. 1 осознанный пропуск: ruvson-rse2#3 (pip ×6, канон «не вслепую» — прецедент numpy).
+- F#9 | КОСЯК-03 (edinyy-svod#6) исполнен: 4 призрака «37 репозиториев» → «41» (meta description, hero-sub, aria-label, финальный абзац) коммитом `78ff50b0`; верификация: «41 репозитор» ×6, «37 репозитор» ×0, «Тридцать семь» ×0; комментарий-факт HTTP 201.
+- F#10 | КОСЯК-01 (rtynbirf#2) закрыт `completed`: комментарий-факт HTTP 201 — секрет SWARM_TOKEN обновлён 12:15 UTC, run 42479968209 success, вечерняя двойная проверка SWARM-SYNC success; PATCH state HTTP 200.
+- F#11 | rumu: `archived=true` живым GET — мембранная волна для архива N/A финализирована (SECURITY.md+CODEOWNERS на месте с 12:49, dependabot.yml неприменим).
+- F#12 | polimat-hub: `ОТЧЁТ-ДОДЕЛКА-2026-11-08.md` создан (commit `86719c83`); `НЕДОДЕЛАННОЕ_2026-11-08.md` дополнен вечерним приростом «ДОДЕЛКА» (commit `267b59f8`).
+**Stage Summary:** очередь ДПР 14→1 (pip-канон); призраки 37→41 добиты до последней строки; КОСЯК-01 закрыт; отчёт Хозяина лежит в хабе; открыто — pip-PR на тест-прогон, отставные токены (только web-UI Хозяина), 2 квота-точки (страж 514749, 09:00 МСК), 215 предложений роя в очереди волн.
