@@ -2419,3 +2419,25 @@ Stage Summary:
 - F#21 | 42 issues Волны ×3 закрыты по закону живого зелёного прогона (параллельный субагент «polymath-swarm»); финальный срез: 134 зелёных, живые красные — только известные орбиты (ruvson-lyrics квота-окно до 09:00 МСК; singulyar W-AUD-16).
 - F#22 | Карта = территория: 42-й житель revo (LABS №26, 18:38) — реестр и мастер-индекс #10 проинформированы (реестр 2a0213e4, коммент 201).
 **Stage Summary:** Волна ×4 закрыта: 24 зажиганий + 6 ран + 20 yml-мусора + CSV-дрейф — всё живыми зелёными прогонами; параллельный рой сработал аддитивно, конфликтов записи ноль; дом: 41 активных + revo = 42.
+
+---
+
+## TH-WAVE5 · Волна ×5-ХОЗЯИН «Красный рассвет» (09.11.2026, 00:33–01:1x МСК)
+
+**Agent:** POLYMATH-SWARM (мультиагент, токен-ротация принята: новый PAT ghp_5lmK… верифицирован GET /user 200, полный скоуп)
+**Task:** директива Хозяина github-runbook#10: исполнение реестра ×3/×4 по закону закрытия §5, добивание красных и честных хвостов.
+
+### Work Log (факты)
+
+- **F#15** Срез живьём: 42 репо · 128 открытых issues · 0 PR · текущих красных workflow = 5 (из 36 точек оконного хвоста — история, зажитая ×4). Скрипты: fresh_slice_x5.py, current_red_x5.py, diag_red_x5.py.
+- **F#16** Геном роя догнан каноном `scripts/pin.py --write` (ls-remote живьём): 6 клеток отставали (singular, voice-atlas-llm, gvpr, commons, runtime-protocol, agryp); rebase поверх чужого cc6c4a0 (волна ×5-сосед), конфликтов нет; верификация 11/11 same. cell-swarm main = 41545729.
+- **F#17** Оракул singulyar заживлён живьём: страж-пин честно краснел (тело rumu d95ad5a4 впереди пина после чужого фикса гомоглифа 21:37); после пуша генома — run 42526504287 success (workflow_dispatch ref=rumu).
+- **F#18** П-08 исполнен (voice-atlas-llm#6 п.2 ↔ polimat-hub#26): клон /tmp/voice-atlas; rebase proven-recipes 8/8 на c2b0362; конфликт .gitattributes разрешён — глобальная ми́на `* text eol=lf` (CRLF-порча wav 300588→300579) заменена явными text-типами + `*.wav/.onnx/.pth/.mp3 binary`; в процессе сработала та самая ловушка — байты восстановлены (300588, sha256 c4db7b69 == эталон).
+- **F#19** Арматура П-08: evaluation/gate.json (mean_rag_coverage >= 0.8334610292588626, val30, retrieval-only, baseline=report_retrieval.json), evaluation/eval_gate.py (rc-гейт), tests/test_works_wav_hashes.py (4 контура ловушки: wav-контракты, регресс CRLF-мины, MANIFEST.jsonl 50×sha256, 20×20 языков), ci.yml: ain]→[main] + шаг eval-гейта. Локально: pytest 4/4 PASSED, eval-gate PASS 0.8334==baseline rc=0.
+- **F#20** Влитие: PR voice-atlas-llm#8 (HTTP 201) → mergeable clean → CI tests success живьём (PR) → merge-коммит f05fc7bc → CI на main success живьём. Пломбы: voice-atlas-llm#6 (6727611945), polimat-hub#26 (6727612172, дополнение Э-1 без перезаписи).
+- **F#21** Разбор Pages singulyar: сайт HTTP 200, кастомный pages.yml success ×3; красный dynamic pages-build-deployment 06.11 — legacy-руда (build OK, Deploy-step несовместим с build_type=workflow; POST /pages/builds → 403) — исцелится следующим пушем в саркофаг-main; дрейф main↔rumu 774/631 — учтённая орбита (ADR-0004/0005 + main-drift-watch, решение Хозяина не тронуто).
+- **F#22** Актуализации: singulyar#62 (6727614809), polymath-os#35 (6727614986 — п.2 закрыт соседом: `!README.md` в biome.json + абзац T16 в AGENTS.md; TODO code-search = 0). Крон-страж #516043 на 09:05 МСК: диспатч pages.yml ruvson-lyrics (квота-окно 09:00) + полл зелени + пломба в github-runbook#10. Отчёт в github-runbook#10 (6727621725); файл-реестр дополнен секцией ×5-ХОЗЯИН (commit eff2e088, append-only).
+
+### Stage Summary
+
+Волна ×5-ХОЗЯИН исполнена: геном+оракул зелёные живьём, П-08 закрыт по закону §5 (два живых CI-прогона), честные хвосты размечены и взяты на крон. Чужие волны не тронуты (Э-1/Э-2/T/W-AUD). Ноль дублей, ноль ошибок записи.
