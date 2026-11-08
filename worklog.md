@@ -2361,3 +2361,28 @@ Stage Summary:
 - Карта 41 = истина во всех четырёх источниках (docpack, ARCHITECTURE+CANON, edinyy-svod, repo-doctrine) с машинной приёмкой
 - Открытыми остались пункты Хозяина: W-AUD-01 (токен-цикл), W-AUD-07 (Ф2 filter-repo — только по явной команде), W-AUD-13 (SWH-аккаунт), W-AUD-14 (CodeQL UI), W-AUD-15 (план Pro)
 - Пломба #7 канона SPEC-0003 — этой записью
+
+---
+Task ID: TH-FIX-1
+Agent: main (Z.ai)
+Task: Я ТЫ, ТЫ Я (единый контур) — полный нумерованный список недоделанного × 41 репо, сохранить все косяки в репо для помятки, исправлять и доделывать по каждому пункту
+
+Work Log:
+- ФАКТ #1: новый токен = rtynbirf (ротация П-35 исполнена Хозяином), scopes repo+workflow+admin; rate 5000
+- СВЕЖИЙ СРЕЗ: dependabot-хвосты T10 слиты роем параллельно (МЫ=ОНИ); universal-agent исцелён; две новые раны: rtynbirf SWARM-SYNC, nous forge
+- РАНА 1 ДИАГНОЗ: секрет SWARM_TOKEN протух (обновлён 07.11 22:31 < ротация) → 401 на req()/user; ИСЦЕЛЕНИЕ: PUT secrets SWARM_TOKEN (204) живым токеном; приёмка dispatch run 42479413698 = success @12:15
+- РАНА 2 ДИАГНОЗ: forge грузил ISO 880 МБ всегда → «Artifact storage quota hit»; ГЛУБЖЕ: квоту жрали кэши polymath-os = 3118 МБ (27 шт: pnpm дубли ×5, trivy ×7, qwen 614 МБ)
+- ИСЦЕЛЕНИЕ 2 (П-14/T14): forge.yml — input auto_publish (boolean), счёт артефактов+SHA256SUMS всегда в логе, лёгкий артефакт <1 МБ retention 1 день (continue-on-error — носитель опционален), полный ISO только при auto_publish=true; грабля YAML: двоеточие в name шага без кавычек = startup_failure ×2, лечение кавычками
+- ЧИСТКА КВОТЫ: DELETE 27/27 кэшей polymath-os = освобождено 3118 МБ; приёмка dispatch run 42480193355 = success, ubuntu-2404 success (не деградировал)
+- T19/П-18: PUT vulnerability-alerts + automated-security-fixes = 204 ×3 (markitdown, polymath-gen, rtynbirf; GET 204 ×3); rumu = 422 → КОСЯК РАСКРЫТ: rumu ARCHIVED (read-only) — единый корень 422+403; политика архива П-62, не чинить
+- КОСЯК ДАННЫХ: agryp ветка tool-catalog УНИЧТОЖЕНА БЕЗ марильника (ls-remote: только main+4 тега; docs/tool-catalog.md 404; search 0) — каталог 2444 позиции потерян; план реконструкции из polymath-tools-atlas; урок П-38 в Помятку
+- ПОМЯТКА КОСЯКОВ МАТЕРИАЛИЗОВАНА: polimat-hub#90 «🔧 КОСЯКИ · ПОМЯТКА РОЯ · полный нумерованный список недоделанного × 41 репо (живой трекер)» + дополнение-коммент (rumu-архив, agryp-реконструкция, итог мембраны)
+- ПРИЁМКИ И ISSUES: cell-swarm#8 закрыт (секрет перезастелен, metabolism success 09:09); П-02 polimat-hub#20 закрыт (профиль живой: 41·2747 автогенерация, grep «39 репозиториев» = 0); П-14 polimat-hub#32 закрыт ( forge success, квотная чистка); комменты-факты в П-04#22, П-18#36 (3/4), П-23#41 (ruvson tripwire success 09:46)
+- ВОЛНА МЕМБРАНЫ T20/T21: 14/14 репо одеты — dependabot.yml канон ×11 (ecosystems по телу: pip/npm/cargo/github-actions, groups, лимит 5), CODEOWNERS ×4, SECURITY.md ×5 (24-ч контур Э-2.3/CRA), AGENTS.md ×2 (контракт роя); push 201×13 (rumu = архив, отложено); матрица membrane_matrix.json
+- Токен нигде не сохранён; push — одноразовые чистые клоны /tmp, все удалены
+
+Stage Summary:
+- НУМЕРАЦИЯ НЕДОДЕЛАННОГО ПОЛНА: Помятка #90 = живой трекер (исправлено сегодня ×3 раны; косоглаз данных ×2 (agryp-каталог, rumu-архив); хвосты ×4 (П-19 хвост, П-20, П-22, могильник веток dependabot); карта исполнения П-00..П-68 по приоритетам
+- ЗАКРЫТО ISSUES: cell-swarm#8, polimat-hub#20 (П-02), polimat-hub#32 (П-14); починено CI ×2; одето репо ×14; vulnerability ×3
+- ГРАБЛИ В ПОМЯТКЕ: секреты меняются в волне ротации токена · YAML: кавычки в name шага · данные без бандла не удалять · архив не чинят — архив хранят
+- Пломба #7 канона SPEC-0003 — этой записью
