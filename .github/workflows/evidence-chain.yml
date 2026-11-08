@@ -40,10 +40,6 @@ jobs:
           print(f"SEALS.jsonl: записей {r['records']} (legacy {r['legacy']}, canon v2 {r['v2']}), разрывов {len(r['breaks'])}")
           print(f"ГОЛОВА ЦЕПОЧКИ: `{r['head']}`")
           PY
-      - name: Память прогона — отчёт артефактом
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
-        with:
-          name: chain-report-${{ github.run_id }}
-          path: chain-report.json
-          if-no-files-found: error
+      # Память прогона артефактом снята волной ×4: квота Artifact storage аккаунта
+      # исчерпана (Failed to CreateArtifact, 2026-11-08) — красила зелёные гейты.
+      # Свидетельство = сам прогон + head цепочки в summary.
