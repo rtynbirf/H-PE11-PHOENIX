@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
+</div>
+
 # ФЕНИКС-11 // PHOENIX-11
 
 ![PHOENIX-11](brand/PHOENIX-11_wallpaper.png)
