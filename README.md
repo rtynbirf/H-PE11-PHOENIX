@@ -2,6 +2,15 @@
   <img src="banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
 </div>
 
+<!--ФОРЖ:МУЗА:НАЧАЛО-->
+<div align="center">
+  <img src="repo-muse.svg" width="100%" alt="Муза H-PE11-PHOENIX: картина кузни ПОЛИМАТ, раунд 9" />
+  <br/>
+  <img src="forge-divider.svg" width="62%" alt="разделитель кузни ПОЛИМАТ" />
+</div>
+<!--ФОРЖ:МУЗА:КОНЕЦ-->
+
+
 # ФЕНИКС-11 // PHOENIX-11
 
 ![PHOENIX-11](brand/PHOENIX-11_wallpaper.png)
@@ -114,3 +123,10 @@ docs/TWEAK-MATRIX.md              — полная матрица: перено�
 Запуск: admin PowerShell -> открыть файл, ВЫБРАТЬ `$PhxProfile` -> выделить всё -> вставить в консоль.
 `Report` ничего не меняет (план + ЭВ.1), `Apply` пишет журнал до изменений,
 `Restore` откатывает по журналу (reg + сервисы + задачи + Appx + питание).
+
+<!--ФОРЖ:ПОДВАЛ-->
+---
+
+<div align="center">
+  <sub>◆ картина и штандарт — ручная ковка <a href="https://github.com/rtynbirf">КУЗНИ ПОЛИМАТ</a> · ЧЕЛОВЕК=АККАУНТ=PID1 ◆</sub>
+</div>
