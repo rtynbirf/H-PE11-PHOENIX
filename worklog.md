@@ -3079,3 +3079,30 @@ steps.if) → гейт переведён на repository VARIABLE `CELL_SWARM_A
 a75de74: zizmor 🟢 + Scorecard 🟢 + metabolism 🟢. А6-4-чеклист владельца — 3 пункта:
 B′ (ровно repo) + GitHub App («кровь-геном», contents:read + actions:write) +
 переменная CELL_SWARM_APP_ON=1. Реестр-досыл: index @ 795ee90. Уведомления G3: 0.
+
+## TH-R12-09 · 2026-11-15 19:05–20:05 UTC · ТАКТ ×31 (Полимат-Хозяин, мандат «НА АВТОМАТ ВСЁ ПЕРЕВОДИ» → singulyar-a0-audit)
+
+- **А-автомат аудит-бандла** одним коммитом af64e645: СТРАЖ ВЕРДИКТОВ A0 (a0-audit-watch.yml,
+  пн 09:11 UTC + диспетч: py_compile 10 скриптов, самотест JCS 7/7 RFC 8785 §3.2.3,
+  sha256sum -c SHA256SUMS.txt — 41 вердикт-носитель запечатан: reports/ 2 PDF, logs/ 27,
+  r4_implementation/ 5, scripts/ 6, R4_X019_DESIGN.md); РЕВО-пять тем же коммитом
+  (banner/muse/divider + муза-блок README + AGENTS.md со сводом + revo-obhod.yml, дрейф = issue);
+  dependabot.yml (actions+pip weekly+group) + requirements.txt (пины среды аудита A2_versions).
+- **Dependabot-волна стартовала сама**: Update #1706015174 success → PR #1 checkout
+  4.2.2→7.0.1 (пин 3d3c42e5… — полный SHA40, дом бежит им зелёным) → squash 91a67939 (С128).
+- Локальный strict-прогон стража: 41/41 OK, py_compile 10 ACCEPT, JCS 7/7.
+- **Возвратный случай `.github`**: account-facade красный на e731c140 (фасад не знал
+  приватного тела) — самозалечка П36 успела запушить автоген f0457d16; диспетч на свежем
+  HEAD — success 43753797469 (прецедент agryp ×29). Красный снят.
+- **Н-11 вскрыт**: биллинг Actions на единственном приватном теле — джобы не стартуют
+  («recent account payments have failed or spending limit needs to be increased»;
+  runs 43752731289/43752733514/43753004614); billing-API токену 404 (нужен admin:billing).
+  Видимость не менялась (never-do). Законное состояние, дедлайн 2026-11-30; решает Хозяин:
+  лимит/пополнение/публичность/runner. Страж живёт локальными такт-прогонами (сегодня зелёный).
+- cell-swarm blood-genome: диспетч без еды — честный красный ожидания крови (А6-4, гейт на
+  переменной ×30); внесён в реестр законных состояний. Уведомления G3: погашены после фиксации.
+- Реестр: khozyain 7b8993c2 (срез №4 + legit_open_states ×2) · счётчик 2→3 (Н-10, А6-4, Н-11 —
+  рука/кошелёк Хозяина). Грабли ×31: rulesets-list 403 на приватном теле (creations
+  restricted, в API невидимо); argv-лимит curl на base64-блобах → payload файлом;
+  logs-jobs BlobNotFound первые ~90 c после completion; счётчик-гейт `if: secrets…` в
+  steps.if не существует (см. TH-R12-08, повторен тут по чеклисту А6-4).
