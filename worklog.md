@@ -3072,3 +3072,10 @@ append мёртв (дежурная волна исправила — Хозяи
   песочница убивает фоновые процессы (грабли v1.1 [ПОВТ]); ruleset PUT = частичное
   обновление (name/rule конфликт на повтор — слать полное тело с родным name).
 - Реестр: index @ d8d4f19 · HOUSE_STATE: Срез №3 (khozyain 97faa15) · счётчик 5→2.
+
+**Досыл TH-R12-08 (18:5x UTC):** первый вариант гейта чеканки (`if: secrets… != ''`) дал
+startup_failure (cell-swarm run 43747873231, ноль джоб — secrets не входит в контексты
+steps.if) → гейт переведён на repository VARIABLE `CELL_SWARM_APP_ON == '1'`; cell-swarm
+a75de74: zizmor 🟢 + Scorecard 🟢 + metabolism 🟢. А6-4-чеклист владельца — 3 пункта:
+B′ (ровно repo) + GitHub App («кровь-геном», contents:read + actions:write) +
+переменная CELL_SWARM_APP_ON=1. Реестр-досыл: index @ 795ee90. Уведомления G3: 0.
