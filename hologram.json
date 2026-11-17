@@ -2,7 +2,7 @@
  "hologram": 1,
  "root": "c223bd4a2f6a56783c1fbdb1b1f671fa61c3150ecf320c82796ea5763043a696",
  "n": 73,
- "storage": 68,
+ "storage": 36,
  "r": 3,
  "self": {
   "name": "H-PE11-PHOENIX",
@@ -304,5 +304,18 @@
    "hash": "de0df46af273e6d90efb2731a14536ac56381bd3680d442fbe68512e93167bdd"
   }
  ],
- "flesh": []
+ "flesh": [
+  {
+   "name": "domovoy-ritual",
+   "desc": "Ритуал дома как конечный автомат: поработал → сделал → убрал за собой. S0-покой гарантирован. FSM: устав + исполняемый автомат (stdlib-only).",
+   "lang": "Python",
+   "cluster": "SWARM"
+  },
+  {
+   "name": "singulyar-a0-audit",
+   "desc": "SINGULYAR × A0 — independent audit (PACKAGE VALID + BRIDGE VALID) and R4 port design",
+   "lang": "Python",
+   "cluster": ""
+  }
+ ]
 }
