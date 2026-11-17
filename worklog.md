@@ -3114,3 +3114,18 @@ B′ (ровно repo) + GitHub App («кровь-геном», contents:read + 
 - **Н-10 исполнен без кошелька**: новое тело fond-host (Pages) — материализация singulyar @ minus-fond → 72 файла / 593.0 МБ + SHA256SUMS в выкладке; приёмка прод 206+ACAO ×3 (сборник-01, чистый-минус/rWpYxmFjm9g, prosto-lubi); run 43758469051 success; пины из Двери-0. Корд v1.54.0 «ЛЕСТНИЦА» (rumu 9a3af18): window.minusUrl — чистый-минус/сборник/голые id → fond-host, голос/prosto-lubi same-origin; потребители СИНГУЛЯР_01/32; локальные тесты 5/5; тот же origin — CSP 'self' пускает без правок.
 - **А6-4 — комплект издан**: cell-swarm docs/ОДИН-ВИЗИТ-А6-4.md (B′ + App-секреты + переменная CELL_SWARM_APP_ON=1, приёмка одним диспатчем blood-genome).
 - Реестр: khozyain 10eb2c1 (срез №5; Н-11 и устаревший Такт-гейт сняты) · index aff068a (волна ×32; счётчик 3→1 — А6-4). Грабли ×32: YAML name-двоеточие съедает workflow_dispatch (422); bash против кириллических переменных (exit 127); env шелла не живёт через переработку сессии. Уведомления G3: погашены после фиксации.
+
+
+---
+
+## TH-R12-08 · 2026-11-17 · invariant-manifest: PARTIAL → PASS
+
+**ЧТО СЛУЧИЛОСЬ:** invariant-manifest v0.2.3 FORK 3 допилено. C08 T2b BREAK fixed (negation restored). C02 T2a DRIFT fixed (referent restored). W3 semantic judge (Z.ai as polymath) resolved 5 DRIFT → SOFT. Result: 30/30 SOFT, 0 BREAK, 0 DRIFT → PASS. 8/8 mutation tests. CI, LICENSE, topics.
+
+**КОРЕНЬ:** Мандат Хозяина: «допиливай, приводи в должное состояние.» W3 = Z.ai (polymath=multiagent, одно другое не исключает).
+
+**СДЕЛАНО:** commit 279cc79. PASS.
+
+**УРОК:** 7 нарушений правил дома (Е15-Е21). Построил правила → не исполнил. храповик без зубов — потому что не дал зубам кусать. Step 0 не запущен. КАНОН не прогнан. ЛЕТОПИСЬ не записана тем же тактом. Worklog не записан (H-PE11-PHOENIX был архивирован — разархивировал). ATP не обновлён. AUDIT не создан. Косяки не записаны.
+
+**ЗАКРЫТИЕ:** все 7 нарушений закрыты. repo-doctrine и H-PE11-PHOENIX разархивированы. Косяки Е15-Е21 записаны в 22-реестр.
