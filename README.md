@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
+  <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
 </div>
 
 <!--ФОРЖ:МУЗА:НАЧАЛО-->
 <div align="center">
-  <img src="repo-muse.svg" width="100%" alt="Муза H-PE11-PHOENIX: мастерская ФЕНИКС АР-НУВО, кузня ПОЛИМАТ, раунд 12 · REVE=РЕВО" />
+  <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/repo-muse.svg" width="100%" alt="Муза H-PE11-PHOENIX: мастерская ФЕНИКС АР-НУВО, кузня ПОЛИМАТ, раунд 12 · REVE=РЕВО" />
   <br/>
-  <img src="forge-divider.svg" width="62%" alt="делитель мастерской ФЕНИКС АР-НУВО" />
+  <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/forge-divider.svg" width="62%" alt="делитель мастерской ФЕНИКС АР-НУВО" />
 </div>
 <!--ФОРЖ:МУЗА:КОНЕЦ-->
 
