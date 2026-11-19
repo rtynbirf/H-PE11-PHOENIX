@@ -10,7 +10,7 @@
 import hashlib, json, os, re, subprocess
 
 try:
-    CFG = json.loads(r'''{"name": "H-PE11-PHOENIX", "num": 2, "school": "НОВОСТРОЙ РОЯ", "desc": "PHOENIX-11: ворклог операций TH-* (журнал неповторимых результатов), сборки WinPE, сессии. Правила ведения — в rtynbirf/repo-doctrine.", "topics": ["build-automation", "ops-log", "pid1", "powershell"], "releases": 0, "palette": {"bg": "#0C2E21", "bg2": "#14402E", "ink": "#EFE7D2", "gold": "#D4AF37", "gold2": "#E8C868", "dim": "#8FB09C", "accent": "#C43B27"}}''')
+    CFG = json.loads(r'''{"name": "H-PE11-PHOENIX", "num": 21, "school": "ФЕНИКС АР-НУВО", "desc": "PHOENIX-11: ворклог операций TH-* (журнал неповторимых результатов), сборки WinPE, сессии. Правила ведения — в rtynbirf/repo-doctrine.", "topics": ["build-automation", "ops-log", "pid1", "powershell"], "releases": 14, "palette": {"bg": "#2A1D12", "bg2": "#3A2A1B", "ink": "#F1E8D8", "gold": "#D4AF37", "gold2": "#E8C868", "dim": "#B79F7E", "accent": "#1F5B8B"}}''')
 except Exception:
     CFG = {"name": "REVO", "num": 0, "school": "", "desc": "", "topics": [], "releases": 0,
            "palette": dict(bg="#EFE6CF", bg2="#F6EFDC", ink="#241C10", gold="#9A7B23",
