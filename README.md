@@ -1,4 +1,10 @@
 <div align="center">
+
+<a href="https://github.com/rtynbirf/H-PE11-PHOENIX"><img src="banner.png" width="100%" alt="H-PE11-PHOENIX — штандарт мастерской в каноне ORNAMENTAL MYTHO-REALISM"></a>
+
+</div>
+
+<div align="center">
   <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
 </div>
 
@@ -17,7 +23,7 @@
 
 | ФАЙЛОВ | ПАПОК | КОММИТОВ | ОБНОВЛЕНО | РЕЛИЗОВ |
 |---:|---:|---:|---|---:|
-| 207 | 22 | 343 | 2026-11-19 | 14 |
+| 207 | 22 | 344 | 2026-11-19 | 0 |
 <!--ФОРЖ:ПАСПОРТ:КОНЕЦ-->
 
 
