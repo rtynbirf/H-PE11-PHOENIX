@@ -3182,3 +3182,30 @@ fleet/FLEET_VERDICT.csv (46 вердиктов), evidence/fleet_verdict.csv, cla
 **УРОК:** Ворота платформы — законное состояние носителя (п.9 Части I); классы прибора
 должны совпадать с классами канона (Е29); контракт окружения — часть интерфейса (Е30);
 ребейз на живую волну соседа — норма дома, коллизии нумерации решаются scope, не правкой чужого.
+
+---
+
+## TH-AP-04 · 2026-11-19 · Ворота markitdown зафиксированы в каноне SSOT: протокол 11 проб, узел+claim+lock
+
+**ЧТО СЛУЧИЛОСЬ:** TH-AP-03 задокументировал ворота в прозе ворклога — но «документировано»
+должно значить «в пакете claims с пломбами». Сведено: markitdown_gate_probe.py исполнил 11 проб
+одним тактом и записал тела ответов машиной (evidence/markitdown_gate.{csv,json}): dispatch
+422 «Actions has been disabled for this repository.» ×3 — до enable, после enable двух воркфлоу
+(PUT enable 204/204, state=active) и после цикла disable→enable permissions; rerun queued 403;
+check-suites головы пусты. Противоречие enabled=true ↔ dispatch 422 — состояние платформы,
+не недоработка агента. В канон SSOT вписаны: узел markitdown-gate (8-й, build: fleet-guard,
+claims-package перевешен на него), claim AP-GATE-001 (10-й, 2 log_analysis + 2 measurement
+в живые ячейки summary), BUILD_GRAPH.lock.json — впервые в репо (пломба хэшей узлов, validate
+отказывает несогласованным правкам графа). Канон: STRUCTURE PASS 8 узлов + lex-naturae
+valid=true 10/10. Пуш f004e21: три стража зелёные (protocol, летопись-страж, pasichnik).
+
+**КОРЕНЬ:** «вероятный путь» в legit_open был заявкой, а не фактом; факт = протокол проб
+с кодами и телами, опровержимым условием (любой dispatch 204 — узел ложен).
+
+**СДЕЛАНО:** assembly-protocol f004e21 (7822d73→f004e21): узел markitdown-gate, claim
+AP-GATE-001, evidence/markitdown_gate.{csv,json}, gate-строки summary (gate_probes=11,
+gate_dispatch_422=3, gate_rest_exhausted=1), lock-файл; перепломбировка 6 claims (Е31).
+Ритуал: Е31 в реестр, ATP s19, HOUSE_STATE 28, legit_open markitdown-строка обновлена.
+
+**УРОК:** Заявка о воротах без протокола проб — проза; ворота = опровержимое состояние
+в каноне. Append в raw-артефакт сдвигает пломбы всех зависимых claims (Е31).
