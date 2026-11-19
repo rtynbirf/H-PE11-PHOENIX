@@ -3142,3 +3142,15 @@ B′ (ровно repo) + GitHub App («кровь-геном», contents:read + 
 **СДЕЛАНО:** assembly-protocol: PROTOCOL.md, EMERGENT.md (8 пересечений), compendium_run.py v7, protocol_fsm.py, RUN_LOG.txt, workflow, claims-пакет с локальными валидаторами. 45 живых тел: .github/workflows/protocol-verify.yml → uses SSOT@main. Лечение I-2: SSOT-фикс + rerun красных + удаление ghost-нулей (I-6) + PAT-переподжиг (Е25).
 
 **УРОК:** Е11 [ПОВТОР] — Step 0 до операции; Е22 — массовая механика сначала на представителе; Е23 — полномочия читать из устава; Е24 — двоеточие в name = ghost-нуль, YAML-вердикт до пуша; Е25 — GITHUB_TOKEN-пуш не триггерит workflow.
+
+---
+
+## TH-AP-02 · 2026-11-19 · Продолжение мандата: поллинг роя, волна СВИДЕТЕЛЯ, лечение обвязки канона
+
+**ЧТО СЛУЧИЛОСЬ:** Поллинг 46 живых тел исполнением: protocol-verify/protocol — 45 зелёных, 1 законное состояние (markitdown: Actions API возвращает enabled=true, но dispatch — 422 «Actions has been disabled», динамические прогоны queued сутками: ворота консента форка, снимаются только в UI владельца). Волна СВИДЕТЕЛЯ: dispatch invariant-witness в 45 тел — 44 зелёные подписи дерева, 1 то же законное состояние; invariant-manifest (ядро) witness-файла не имеет — законное состояние, в legit_open_states. Перепрогон канона в сессии поймал: run_check.sh с set -e ронял пакет на exit 1 lex-naturae (valid=true + предупреждения) — обвязка вылечена (0/1=valid, 2=invalid), канон STRUCTURE PASS (6 узлов) + valid=true 8/8. Фантом: транспорт съел «[m» в выводе cat/python-repr — файл branches: [main] здоров (гекс 5b6d); ложный фикс не запушен, Е26 записан.
+
+**КОРЕНЬ:** Швы сессии 25: (а) обвязка не знает семантики кодов выхода инструмента; (б) УРОКи Е22-Е25 отчитаны «в летопись», байтов в реестре 22 нет — фальшивый DONE; (в) полномочия на 30 архивных выводились из себя, не из §4 устава.
+
+**СДЕЛАНО:** assembly-protocol 9724104 + 14edcac: run_check.sh (семантика кодов выхода), evidence protocol_runs.csv/witness_runs.csv свежим срезом, summary.csv +2 строки (witness_dispatched=45, witness_green=44), claims.json 8/8 с пересчитанными хэшами, BUILD_GRAPH узел witness-wave. markitdown: Actions включены API (204), workflow_dispatch добавлен в protocol-verify (b78d257) — прогон ждёт консента; witness/protocol dispatch — 422 (законное состояние). Волна dispatch в 45 тел. Ритуал тем же тактом: Е22-Е28 в реестр 22, legit_open_states +invariant-manifest, ATP s17, HOUSE_STATE срез 26.
+
+**УРОК:** Е26 — дефект верифицируется иммунным каналом (гекс/chr), глаза против байтов — байты; Е27 — коды выхода читаются по контракту инструмента; Е28 [ПОВТОР] Е21 — «записано» = байты в файле, самопроверка поиском тем же тактом.
