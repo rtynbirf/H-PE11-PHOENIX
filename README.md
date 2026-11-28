@@ -4,10 +4,6 @@
 
 </div>
 
-<div align="center">
-  <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
-</div>
-
 <!--ФОРЖ:МУЗА:НАЧАЛО-->
 <div align="center">
   <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/repo-muse.svg" width="100%" alt="Муза H-PE11-PHOENIX: мастерская ФЕНИКС АР-НУВО, кузня ПОЛИМАТ, раунд 12 · REVE=РЕВО" />
@@ -18,13 +14,31 @@
 
 <!--ФОРЖ:ПАСПОРТ:НАЧАЛО-->
 <div align="center">
-  <img src="revo-page.svg" width="100%" alt="РЕВО-паспорт страницы H-PE11-PHOENIX в каноне ORNAMENTAL MYTHO-REALISM: орнаментальная решётка, медальон-миф, строение файлов, лексикон — по фактическому контенту" />
+  <img src="revo-page.svg" width="100%" alt="РЕВО-паспорт страницы H-PE11-PHOENIX №21 в каноне ORNAMENTAL MYTHO-REALISM: орнаментальная решётка, медальон-миф, строение файлов, лексикон — по фактическому контенту" />
 </div>
 
 | ФАЙЛОВ | ПАПОК | КОММИТОВ | ОБНОВЛЕНО | РЕЛИЗОВ |
 |---:|---:|---:|---|---:|
-| 215 | 23 | 418 | 2026-11-28 | 14 |
+| 215 | 23 | 1 | 2026-11-28 | 14 |
 <!--ФОРЖ:ПАСПОРТ:КОНЕЦ-->
+
+# H-PE11-PHOENIX
+
+<p align="center"><img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/.github/social-preview.png" alt="H-PE11-PHOENIX" width="100%"></p>
+
+<div align="center">
+
+<a href="https://github.com/rtynbirf/H-PE11-PHOENIX"><img src="banner.png" width="100%" alt="H-PE11-PHOENIX — штандарт мастерской в каноне ORNAMENTAL MYTHO-REALISM"></a>
+
+</div>
+
+<div align="center">
+  <img src="https://cdn.jsdelivr.net/gh/rtynbirf/H-PE11-PHOENIX@main/banner.png" alt="H-PE11-PHOENIX — Ворклог операций TH-* — журнал неповторимых результатов" width="100%">
+</div>
+
+
+
+
 
 
 
